@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
@@ -36,6 +36,7 @@
   .stock { font-weight: bold; }
   .stock.ok { color: #2ea660; }
   .stock.low { color: #ff6b6b; }
+  .special-price { display: block; color: #e74c3c; font-weight: bold; font-size: 14px; margin-top: 6px; text-align: right; }
   
   .pagination { text-align: center; margin-top: 24px; }
   .page-btn { padding: 6px 12px; margin: 0 4px; border: 1px solid #ccc; background: #fff; cursor: pointer; border-radius: 4px; }
@@ -84,6 +85,7 @@
     <div id="modalName"></div>
     <div id="modalSku"></div>
     <div id="modalStock" class="modal-stock"></div>
+    <div id="modalPrice" class="modal-stock" style="display:none;"></div>
   </div>
 </div>
 
@@ -161,7 +163,6 @@ function filterCards() {
   searchKeyword = input.value.trim().toLowerCase();
   
   if (!searchKeyword) {
-    // 无搜索词，恢复全部数据
     currentRenderData = allDataCache;
     currentPage = 1;
     document.getElementById('searchHint').textContent = '';
@@ -169,7 +170,6 @@ function filterCards() {
     return;
   }
   
-  // 从 allDataCache 中过滤
   currentRenderData = allDataCache.filter(row => {
     const name = (row['商品名称'] || row['name'] || '').toString().toLowerCase();
     const sku = (row['货号'] || row['sku'] || '').toString().toLowerCase();
@@ -178,7 +178,6 @@ function filterCards() {
   
   currentPage = 1;
   
-  // 显示搜索结果提示
   const hint = document.getElementById('searchHint');
   if (currentRenderData.length === 0) {
     hint.textContent = `未找到包含"${input.value}"的商品`;
@@ -198,7 +197,6 @@ function clearSearch() {
   renderPage();
 }
 
-// 回车触发搜索
 document.addEventListener('DOMContentLoaded', function() {
   const searchInput = document.getElementById('searchInput');
   if (searchInput) {
@@ -229,16 +227,21 @@ function renderPage() {
     const imgName = row['图片名'] || row['image'] || '';
     const brand = row._brand || currentBrand;
     
+    // 特供价：支持多种字段名，按你 Excel 里的列名改
+    const specialPrice = row['特供价'] || row['特价'] || row['specialPrice'] || row['活动价'] || '';
+    const priceHtml = specialPrice ? `<span class="special-price">特供价: ¥${specialPrice}</span>` : '';
+    
     const imgPath = `brands/${brand}/${imgName}`;
     const wrapId = 'wrap-' + index;
     const safeName = (name || '').toString().replace(/'/g, "\\'");
     const safeSku = (sku || '').toString().replace(/'/g, "\\'");
+    const safePrice = (specialPrice || '').toString().replace(/'/g, "\\'");
     
     return `
       <div class="card">
         <div class="img-wrap" id="${wrapId}">
           <img src="${imgPath}" 
-               onclick="showBig('${imgPath.replace(/'/g,"\\'")}','${safeName}','${safeSku}',${stock})" 
+               onclick="showBig('${imgPath.replace(/'/g,"\\'")}','${safeName}','${safeSku}',${stock},'${safePrice}')" 
                onerror="this.onerror=function(){handleImgErr('${wrapId}')};">
         </div>
         <div class="card-info">
@@ -247,6 +250,7 @@ function renderPage() {
             <span class="sku">${sku}</span>
             <span class="stock ${stock > 5 ? 'ok' : 'low'}">库存: ${stock}</span>
           </div>
+          ${priceHtml}
         </div>
       </div>
     `;
@@ -260,7 +264,7 @@ function handleImgErr(id) {
   if (wrap) wrap.innerHTML = '<span>暂无图片</span>';
 }
 
-function showBig(imgPath, name, sku, stock) {
+function showBig(imgPath, name, sku, stock, specialPrice) {
   const modal = document.getElementById('modal');
   document.getElementById('modalImg').src = imgPath;
   document.getElementById('modalName').textContent = name;
@@ -268,6 +272,17 @@ function showBig(imgPath, name, sku, stock) {
   const ms = document.getElementById('modalStock');
   ms.textContent = '库存: ' + stock;
   ms.style.color = stock <= 5 ? '#ff6b6b' : '#51cf66';
+  
+  // 特供价
+  const priceDiv = document.getElementById('modalPrice');
+  if (specialPrice) {
+    priceDiv.textContent = '特供价: ¥' + specialPrice;
+    priceDiv.style.color = '#e74c3c';
+    priceDiv.style.display = 'block';
+  } else {
+    priceDiv.style.display = 'none';
+  }
+  
   modal.classList.add('active');
 }
 
