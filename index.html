@@ -33,9 +33,14 @@
   .name { font-weight: bold; font-size: 15px; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .detail { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
   .sku { color: #666; }
-  .stock { font-weight: bold; }
-  .stock.ok { color: #2ea660; }
-  .stock.low { color: #ff6b6b; }
+  
+  /* 颜色标签区域 */
+  .color-box { margin: 8px 0 4px; font-size: 13px; color: #444; line-height: 1.8; }
+  .color-item { display: inline-block; margin-right: 2px; }
+  .color-item b.ok { color: #2ea660; font-weight: normal; }
+  .color-item b.low { color: #ff6b6b; font-weight: bold; }
+  .color-item.zero { color: #bbb; text-decoration: line-through; }
+  
   .special-price { display: block; color: #e74c3c; font-weight: bold; font-size: 14px; margin-top: 6px; text-align: right; }
   
   .pagination { text-align: center; margin-top: 24px; }
@@ -208,55 +213,76 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+// ========== 核心：按货号合并 + 颜色标签渲染 ==========
 function renderPage() {
   const grid = document.getElementById('grid');
+  
+  // 1. 按货号聚合（同货号多颜色合并为一张卡片）
+  const grouped = {};
+  currentRenderData.forEach(row => {
+    const sku = row['货号'] || row['sku'] || '未知货号';
+    if (!grouped[sku]) grouped[sku] = [];
+    grouped[sku].push(row);
+  });
+
+  const skuList = Object.keys(grouped);
   const start = (currentPage - 1) * PAGE_SIZE;
   const end = start + PAGE_SIZE;
-  const pageData = currentRenderData.slice(start, end);
+  const pageSkus = skuList.slice(start, end);
 
-  if (pageData.length === 0) {
+  if (pageSkus.length === 0) {
     grid.innerHTML = '<div class="no-result">暂无匹配商品</div>';
-    renderPagination();
+    renderPagination(skuList.length);
     return;
   }
 
-  grid.innerHTML = pageData.map((row, index) => {
-    const name = row['商品名称'] || row['name'] || '';
-    const sku = row['货号'] || row['sku'] || '';
-    const stock = row['库存'] || row['stock'] || 0;
-    const imgName = row['图片名'] || row['image'] || '';
-    const brand = row._brand || currentBrand;
-    
-    // 特供价：支持多种字段名，按你 Excel 里的列名改
-    const specialPrice = row['特供价'] || row['特价'] || row['specialPrice'] || row['活动价'] || '';
-    const priceHtml = specialPrice ? `<span class="special-price">特供价: ¥${specialPrice}</span>` : '';
-    
+  grid.innerHTML = pageSkus.map((sku, index) => {
+    const items = grouped[sku];
+    const main = items[0]; // 取第一行做主图/名称
+    const name = main['商品名称'] || main['name'] || sku;
+    const imgName = main['图片名'] || main['image'] || '';
+    const brand = main._brand || currentBrand;
     const imgPath = `brands/${brand}/${imgName}`;
+    const specialPrice = main['特供价'] || main['特价'] || '';
+    
+    // 颜色标签：咖:3 | 蓝:20 | 绿:25
+    const colorDetails = items.map(c => {
+      const cName = c['颜色'] || '默认';
+      const cStock = parseInt(c['库存']) || 0;
+      const stockClass = cStock <= 5 ? 'low' : 'ok';
+      const zeroClass = cStock === 0 ? 'zero' : '';
+      return `<span class="color-item ${zeroClass}">${cName}:<b class="${stockClass}">${cStock}</b></span>`;
+    }).join(' &nbsp;|&nbsp; ');
+
+    const priceHtml = specialPrice ? `<span class="special-price">特供价: ¥${specialPrice}</span>` : '';
     const wrapId = 'wrap-' + index;
-    const safeName = (name || '').toString().replace(/'/g, "\\'");
-    const safeSku = (sku || '').toString().replace(/'/g, "\\'");
+    const safeName = name.replace(/'/g, "\\'");
+    const safeSku = sku.replace(/'/g, "\\'");
     const safePrice = (specialPrice || '').toString().replace(/'/g, "\\'");
     
+    // 弹窗用的颜色信息
+    const modalColors = items.map(c => `${c['颜色']||'默认'}:${c['库存']||0}`).join(' | ');
+
     return `
       <div class="card">
         <div class="img-wrap" id="${wrapId}">
           <img src="${imgPath}" 
-               onclick="showBig('${imgPath.replace(/'/g,"\\'")}','${safeName}','${safeSku}',${stock},'${safePrice}')" 
+               onclick="showBig('${imgPath.replace(/'/g,"\\'")}','${safeName}','${safeSku}','${modalColors}','${safePrice}')" 
                onerror="this.onerror=function(){handleImgErr('${wrapId}')};">
         </div>
         <div class="card-info">
-          <div class="name">${name || sku}</div>
+          <div class="name">${name}</div>
           <div class="detail">
             <span class="sku">${sku}</span>
-            <span class="stock ${stock > 5 ? 'ok' : 'low'}">库存: ${stock}</span>
           </div>
+          <div class="color-box">${colorDetails}</div>
           ${priceHtml}
         </div>
       </div>
     `;
   }).join('');
 
-  renderPagination();
+  renderPagination(skuList.length);
 }
 
 function handleImgErr(id) {
@@ -264,14 +290,15 @@ function handleImgErr(id) {
   if (wrap) wrap.innerHTML = '<span>暂无图片</span>';
 }
 
-function showBig(imgPath, name, sku, stock, specialPrice) {
+function showBig(imgPath, name, sku, colorInfo, specialPrice) {
   const modal = document.getElementById('modal');
   document.getElementById('modalImg').src = imgPath;
   document.getElementById('modalName').textContent = name;
-  document.getElementById('modalSku').textContent = '货号: ' + sku;
+  document.getElementById('modalSku').textContent = `货号: ${sku}  |  ${colorInfo}`;
+  
+  // 弹窗不重复显示总库存，颜色明细已在上面
   const ms = document.getElementById('modalStock');
-  ms.textContent = '库存: ' + stock;
-  ms.style.color = stock <= 5 ? '#ff6b6b' : '#51cf66';
+  ms.style.display = 'none';
   
   // 特供价
   const priceDiv = document.getElementById('modalPrice');
@@ -292,8 +319,8 @@ function closeModal() {
 
 document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
 
-function renderPagination() {
-  const totalPages = Math.ceil(currentRenderData.length / PAGE_SIZE);
+function renderPagination(totalItems) {
+  const totalPages = Math.ceil(totalItems / PAGE_SIZE);
   const pag = document.getElementById('pagination');
   if (totalPages <= 1) { pag.innerHTML = ''; return; }
 
