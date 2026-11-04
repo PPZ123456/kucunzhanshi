@@ -2,120 +2,176 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>库存展示</title>
 <style>
-  body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+  
   .header { text-align: center; margin-bottom: 24px; }
-  .header h2 { margin: 0; font-size: 24px; color: #333; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; max-width: 1400px; margin: 0 auto; }
-  .card { background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-  .img-wrap { width: 100%; height: 280px; background: #e0e0e0; display: flex; align-items: center; justify-content: center; color: #999; position: relative; }
-  .img-wrap img { width: 100%; height: 100%; object-fit: cover; display: block; cursor: pointer; }
-  .card-info { padding: 12px 16px; }
-  .name { font-size: 18px; font-weight: bold; color: #333; margin-bottom: 8px; word-break: break-all; }
-  .detail { display: flex; justify-content: space-between; align-items: center; font-size: 14px; }
+  .header h2 { font-size: 28px; color: #333; }
+  
+  .filter-bar { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 20px; }
+  .filter-btn { padding: 8px 20px; border: 1px solid #2ea660; background: #fff; color: #2ea660; border-radius: 20px; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+  .filter-btn.active, .filter-btn:hover { background: #2ea660; color: #fff; }
+  
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; max-width: 1200px; margin: 0 auto; }
+  .card { background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); transition: transform 0.2s; }
+  .card:hover { transform: translateY(-4px); }
+  .img-wrap { width: 100%; height: 220px; background: #eee; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+  .img-wrap img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+  .img-wrap span { color: #999; font-size: 14px; }
+  .card-info { padding: 12px; }
+  .name { font-weight: bold; font-size: 15px; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .detail { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
   .sku { color: #666; }
   .stock { font-weight: bold; }
   .stock.ok { color: #2ea660; }
-  .stock.low { color: #e74c3c; }
-  .loading { text-align: center; padding: 40px; color: #999; font-size: 16px; }
-
+  .stock.low { color: #ff6b6b; }
+  
+  .pagination { text-align: center; margin-top: 24px; }
+  .page-btn { padding: 6px 12px; margin: 0 4px; border: 1px solid #ccc; background: #fff; cursor: pointer; border-radius: 4px; }
+  .page-btn.active { background: #2ea660; color: #fff; border-color: #2ea660; }
+  .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  
+  .loading { text-align: center; padding: 40px; color: #999; }
+  
   /* 大图弹窗 */
-  .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
+  .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
   .modal.active { display: flex; }
-  .modal-img-wrap { position: relative; max-width: 90%; max-height: 75%; display: flex; justify-content: center; align-items: center; }
-  .modal img { max-width: 100%; max-height: 75vh; object-fit: contain; border-radius: 8px; box-shadow: 0 4px 24px rgba(0,0,0,0.3); }
-  .modal-info { margin-top: 16px; text-align: center; color: #fff; padding: 0 20px; }
-  .modal-info .modal-name { font-size: 22px; font-weight: bold; margin-bottom: 8px; }
-  .modal-info .modal-detail { font-size: 16px; opacity: 0.9; }
-  .modal-info .modal-detail .modal-sku { margin-right: 24px; }
-  .modal-close { position: absolute; top: 20px; right: 30px; color: #fff; font-size: 36px; cursor: pointer; opacity: 0.7; transition: opacity 0.2s; }
-  .modal-close:hover { opacity: 1; }
+  .modal img { max-width: 90%; max-height: 75vh; object-fit: contain; border-radius: 8px; cursor: default; }
+  .modal-info { color: #fff; margin-top: 16px; text-align: center; font-size: 16px; }
+  .modal-info div { margin: 4px 0; }
+  .modal-stock { font-weight: bold; }
+  .close-btn { position: absolute; top: 20px; right: 30px; color: #fff; font-size: 36px; cursor: pointer; opacity: 0.7; }
+  .close-btn:hover { opacity: 1; }
 </style>
 </head>
 <body>
+
 <div class="header">
   <h2>📦 库存展示</h2>
 </div>
-<div class="loading" id="loading">正在加载数据...</div>
+
+<div class="filter-bar" id="filterBar"></div>
+<div class="loading" id="loading">加载中...</div>
 <div class="grid" id="grid"></div>
+<div class="pagination" id="pagination"></div>
 
 <div class="modal" id="modal" onclick="closeModal()">
-  <div class="modal-close" onclick="closeModal()">&times;</div>
-  <div class="modal-img-wrap" onclick="event.stopPropagation()">
-    <img id="modalImg" src="">
-  </div>
-  <div class="modal-info" id="modalInfo">
-    <div class="modal-name" id="modalName"></div>
-    <div class="modal-detail">
-      <span class="modal-sku" id="modalSku"></span>
-      <span class="modal-stock" id="modalStock"></span>
-    </div>
+  <span class="close-btn" onclick="closeModal()">&times;</span>
+  <img id="modalImg" src="" onclick="event.stopPropagation()">
+  <div class="modal-info">
+    <div id="modalName"></div>
+    <div id="modalSku"></div>
+    <div id="modalStock" class="modal-stock"></div>
   </div>
 </div>
 
 <script>
-const grid = document.getElementById('grid');
-const loading = document.getElementById('loading');
+// ================= 配置区 =================
+const brands = ['茉纸', '钓鱼猫', '洹乐熊'];
+// 每个品牌的 data.json 和图片都在 brands/品牌名/ 文件夹下
+// =================
 
-// 页面加载时自动读取 data.json
-fetch('data.json')
-  .then(res => {
-    if (!res.ok) throw new Error('找不到 data.json 文件');
-    return res.json();
-  })
-  .then(data => {
-    loading.style.display = 'none';
-    renderCards(data);
-  })
-  .catch(err => {
-    loading.textContent = '加载失败：' + err.message + '。请确保 data.json 文件与网页在同一文件夹。';
-    console.error(err);
+const PAGE_SIZE = 24;
+let currentBrand = 'all';
+let allDataCache = [];
+let currentRenderData = [];
+let currentPage = 1;
+
+function init() {
+  renderFilterButtons();
+  loadBrand('all');
+}
+
+function renderFilterButtons() {
+  const bar = document.getElementById('filterBar');
+  let html = `<button class="filter-btn active" onclick="loadBrand('all', this)">全部</button>`;
+  brands.forEach(b => {
+    html += `<button class="filter-btn" onclick="loadBrand('${b.replace(/'/g,"\\'")}', this)">${b}</button>`;
   });
+  bar.innerHTML = html;
+}
 
-function renderCards(data) {
-  // data 应该是数组格式：[{货号, 商品名称, 图片名, 库存}, ...]
-  // 自动识别字段名（兼容不同列名）
-  if (data.length === 0) return;
+function loadBrand(brand, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
   
-  const firstRow = data[0];
-  const keys = Object.keys(firstRow);
-  let nameKey = keys.find(k => k.includes('名称') || k.includes('商品')) || keys[1];
-  let skuKey = keys.find(k => k.includes('货号') || k.includes('SKU')) || keys[0];
-  let stockKey = keys.find(k => k.includes('库存') || k.includes('数量')) || keys[keys.length - 1];
-  let imgKey = keys.find(k => k.includes('图片名') || k.includes('图片')) || null;
-  
-  grid.innerHTML = '';
-  data.forEach((row, index) => {
-    const name = row[nameKey] || row[skuKey];
-    const sku = row[skuKey];
-    const stock = row[stockKey];
-    const imgName = imgKey ? row[imgKey] : null;
-    if (!sku) return;
+  currentBrand = brand;
+  currentPage = 1;
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('grid').innerHTML = '';
+
+  if (brand === 'all') {
+    // 合并加载所有品牌
+    Promise.all(brands.map(b => 
+      fetch(`brands/${b}/data.json`)
+        .then(res => res.json())
+        .then(data => data.map(row => ({...row, _brand: b}))) // 标记品牌
+        .catch(() => [])
+    )).then(results => {
+      allDataCache = results.flat();
+      currentRenderData = allDataCache;
+      document.getElementById('loading').style.display = 'none';
+      renderPage();
+    });
+  } else {
+    fetch(`brands/${brand}/data.json`)
+      .then(res => {
+        if (!res.ok) throw new Error('找不到 data.json');
+        return res.json();
+      })
+      .then(data => {
+        allDataCache = data.map(row => ({...row, _brand: brand}));
+        currentRenderData = allDataCache;
+        document.getElementById('loading').style.display = 'none';
+        renderPage();
+      })
+      .catch(err => {
+        document.getElementById('loading').textContent = '加载失败：' + err.message;
+      });
+  }
+}
+
+function renderPage() {
+  const grid = document.getElementById('grid');
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const end = start + PAGE_SIZE;
+  const pageData = currentRenderData.slice(start, end);
+
+  grid.innerHTML = pageData.map((row, index) => {
+    const name = row['商品名称'] || row['name'] || '';
+    const sku = row['货号'] || row['sku'] || '';
+    const stock = row['库存'] || row['stock'] || 0;
+    const imgName = row['图片名'] || row['image'] || '';
+    const brand = row._brand || currentBrand;
     
-    const baseName = imgName ? imgName.replace(/\.(jpg|png|jpeg)$/i, '') : sku;
+    // 图片路径：brands/品牌名/图片文件名
+    const imgPath = `brands/${brand}/${imgName}`;
     const wrapId = 'wrap-' + index;
     const safeName = (name || '').toString().replace(/'/g, "\\'");
     const safeSku = (sku || '').toString().replace(/'/g, "\\'");
     
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.innerHTML = `
-      <div class="img-wrap" id="${wrapId}">
-        <img src="${baseName}.jpg" 
-             onclick="showBig('${baseName}.jpg','${baseName}.png','${safeName}','${safeSku}',${stock})" 
-             onerror="this.onerror=function(){handleImgErr('${wrapId}')}; this.src='${baseName}.png';">
-      </div>
-      <div class="card-info">
-        <div class="name">${name}</div>
-        <div class="detail">
-          <span class="sku">${sku}</span>
-          <span class="stock ${stock > 5 ? 'ok' : 'low'}">库存: ${stock}</span>
+    return `
+      <div class="card">
+        <div class="img-wrap" id="${wrapId}">
+          <img src="${imgPath}" 
+               onclick="showBig('${imgPath.replace(/'/g,"\\'")}','${safeName}','${safeSku}',${stock})" 
+               onerror="this.onerror=function(){handleImgErr('${wrapId}')};">
+        </div>
+        <div class="card-info">
+          <div class="name">${name || sku}</div>
+          <div class="detail">
+            <span class="sku">${sku}</span>
+            <span class="stock ${stock > 5 ? 'ok' : 'low'}">库存: ${stock}</span>
+          </div>
         </div>
       </div>
     `;
-    grid.appendChild(card);
-  });
+  }).join('');
+
+  renderPagination();
 }
 
 function handleImgErr(id) {
@@ -123,22 +179,14 @@ function handleImgErr(id) {
   if (wrap) wrap.innerHTML = '<span>暂无图片</span>';
 }
 
-function showBig(jpg, png, name, sku, stock) {
+function showBig(imgPath, name, sku, stock) {
   const modal = document.getElementById('modal');
-  const modalImg = document.getElementById('modalImg');
-  const modalName = document.getElementById('modalName');
-  const modalSku = document.getElementById('modalSku');
-  const modalStock = document.getElementById('modalStock');
-  
-  modalImg.src = jpg;
-  modalImg.onerror = function() { this.src = png; };
-  
-  modalName.textContent = name;
-  modalSku.textContent = '货号: ' + sku;
-  modalStock.textContent = '库存: ' + stock;
-  if (stock <= 5) modalStock.style.color = '#ff6b6b';
-  else modalStock.style.color = '#51cf66';
-  
+  document.getElementById('modalImg').src = imgPath;
+  document.getElementById('modalName').textContent = name;
+  document.getElementById('modalSku').textContent = '货号: ' + sku;
+  const ms = document.getElementById('modalStock');
+  ms.textContent = '库存: ' + stock;
+  ms.style.color = stock <= 5 ? '#ff6b6b' : '#51cf66';
   modal.classList.add('active');
 }
 
@@ -146,9 +194,28 @@ function closeModal() {
   document.getElementById('modal').classList.remove('active');
 }
 
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') closeModal();
-});
+document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
+
+function renderPagination() {
+  const totalPages = Math.ceil(currentRenderData.length / PAGE_SIZE);
+  const pag = document.getElementById('pagination');
+  if (totalPages <= 1) { pag.innerHTML = ''; return; }
+
+  let html = `<button class="page-btn" ${currentPage===1?'disabled':''} onclick="goPage(${currentPage-1})">上一页</button>`;
+  for (let i = 1; i <= totalPages; i++) {
+    html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+  }
+  html += `<button class="page-btn" ${currentPage===totalPages?'disabled':''} onclick="goPage(${currentPage+1})">下一页</button>`;
+  pag.innerHTML = html;
+}
+
+function goPage(p) {
+  currentPage = p;
+  renderPage();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+init();
 </script>
 </body>
 </html>
