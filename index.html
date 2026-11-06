@@ -16,11 +16,16 @@
   .filter-btn.active, .filter-btn:hover { background: #2ea660; color: #fff; }
   
   /* 搜索栏 */
-  .search-bar { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .search-bar { display: flex; justify-content: center; align-items: center; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
   .search-bar input { width: 90%; max-width: 360px; padding: 10px 16px; font-size: 15px; border: 1px solid #ddd; border-radius: 24px; outline: none; box-shadow: 0 2px 6px rgba(0,0,0,0.06); transition: border-color 0.2s; }
   .search-bar input:focus { border-color: #2ea660; box-shadow: 0 2px 8px rgba(46,166,96,0.2); }
   .search-bar .clear-btn { padding: 8px 16px; border: 1px solid #ccc; background: #fff; color: #666; border-radius: 20px; cursor: pointer; font-size: 13px; transition: all 0.2s; }
   .search-bar .clear-btn:hover { background: #ff6b6b; color: #fff; border-color: #ff6b6b; }
+  
+  /* 每页数量选择器 */
+  .page-size-bar { text-align: center; margin-bottom: 16px; font-size: 13px; color: #666; }
+  .page-size-bar select { padding: 4px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; margin-left: 4px; cursor: pointer; }
+  
   .search-result-hint { text-align: center; color: #999; font-size: 13px; margin-bottom: 12px; }
   
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; max-width: 1200px; margin: 0 auto; }
@@ -62,6 +67,9 @@
   
   /* 无结果 */
   .no-result { text-align: center; padding: 60px 20px; color: #999; font-size: 16px; }
+  
+  /* 统计信息 */
+  .stats-bar { text-align: center; color: #999; font-size: 12px; margin-bottom: 12px; }
 </style>
 </head>
 <body>
@@ -78,6 +86,18 @@
   <button class="clear-btn" onclick="clearSearch()">清除</button>
 </div>
 <div class="search-result-hint" id="searchHint"></div>
+
+<!-- 每页数量选择 -->
+<div class="page-size-bar">
+  每页显示：
+  <select id="pageSizeSelect" onchange="changePageSize()">
+    <option value="12">12 个款</option>
+    <option value="24" selected>24 个款</option>
+    <option value="36">36 个款</option>
+    <option value="48">48 个款</option>
+  </select>
+  <span id="statsBar" class="stats-bar"></span>
+</div>
 
 <div class="loading" id="loading">加载中...</div>
 <div class="grid" id="grid"></div>
@@ -99,7 +119,7 @@
 const brands = ['茉纸26秋冬', '兰朵儿26秋冬', '洹乐熊26秋冬', '钓鱼猫26秋冬', '贝婴兔26秋冬', '班纳日记26秋冬', '婴装26秋冬', '叮当町26秋冬', '小米班长26秋冬', '青禾小筑26秋冬', '丛林木马26秋冬', '米兰贝贝26秋冬', '椰奶小贝26秋冬', '沐童王子26秋冬', '英贝米尼26秋季', '贝肽斯26秋冬', '贝婴兔福利款'];
 // =================
 
-const PAGE_SIZE = 24;
+let PAGE_SIZE = 24; // 默认24，可通过下拉框改
 let currentBrand = 'all';
 let allDataCache = [];
 let currentRenderData = [];
@@ -115,9 +135,17 @@ function renderFilterButtons() {
   const bar = document.getElementById('filterBar');
   let html = `<button class="filter-btn active" onclick="loadBrand('all', this)">全部</button>`;
   brands.forEach(b => {
-    html += `<button class="filter-btn" onclick="loadBrand('${b.replace(/'/g,"\\'")}', this)">${b}</button>`;
+    const safeB = b.replace(/'/g, "\\'");
+    html += `<button class="filter-btn" onclick="loadBrand('${safeB}', this)">${b}</button>`;
   });
   bar.innerHTML = html;
+}
+
+function changePageSize() {
+  const select = document.getElementById('pageSizeSelect');
+  PAGE_SIZE = parseInt(select.value);
+  currentPage = 1;
+  renderPage();
 }
 
 function loadBrand(brand, btn) {
@@ -134,18 +162,29 @@ function loadBrand(brand, btn) {
 
   if (brand === 'all') {
     Promise.all(brands.map(b => 
-      fetch(`brands/${b}/data.json`)
-        .then(res => res.json())
+      fetch(`brands/${encodeURIComponent(b)}/data.json`)
+        .then(res => {
+          if (!res.ok) throw new Error(`品牌"${b}"加载失败`);
+          return res.json();
+        })
         .then(data => data.map(row => ({...row, _brand: b})))
-        .catch(() => [])
+        .catch(err => {
+          console.error(err.message);
+          return [];
+        })
     )).then(results => {
       allDataCache = results.flat();
       currentRenderData = allDataCache;
       document.getElementById('loading').style.display = 'none';
+      
+      // 统计
+      const skuCount = new Set(allDataCache.map(r => r['货号'])).size;
+      document.getElementById('statsBar').textContent = `共 ${allDataCache.length} 行数据，${skuCount} 个款`;
+      
       renderPage();
     });
   } else {
-    fetch(`brands/${brand}/data.json`)
+    fetch(`brands/${encodeURIComponent(brand)}/data.json`)
       .then(res => {
         if (!res.ok) throw new Error('找不到 data.json');
         return res.json();
@@ -154,6 +193,10 @@ function loadBrand(brand, btn) {
         allDataCache = data.map(row => ({...row, _brand: brand}));
         currentRenderData = allDataCache;
         document.getElementById('loading').style.display = 'none';
+        
+        const skuCount = new Set(allDataCache.map(r => r['货号'])).size;
+        document.getElementById('statsBar').textContent = `共 ${allDataCache.length} 行数据，${skuCount} 个款`;
+        
         renderPage();
       })
       .catch(err => {
@@ -187,7 +230,8 @@ function filterCards() {
   if (currentRenderData.length === 0) {
     hint.textContent = `未找到包含"${input.value}"的商品`;
   } else {
-    hint.textContent = `找到 ${currentRenderData.length} 个结果`;
+    const skuCount = new Set(currentRenderData.map(r => r['货号'])).size;
+    hint.textContent = `找到 ${currentRenderData.length} 行数据，${skuCount} 个款`;
   }
   
   renderPage();
@@ -245,7 +289,7 @@ function renderPage() {
     const imgPath = `brands/${brand}/${imgName}`;
     const specialPrice = main['特供价'] || main['特价'] || '';
     
-    // 颜色标签：咖:3 | 蓝:20 | 绿:25
+    // 颜色标签
     const colorDetails = items.map(c => {
       const cName = c['颜色'] || '默认';
       const cStock = parseInt(c['库存']) || 0;
@@ -255,12 +299,11 @@ function renderPage() {
     }).join(' &nbsp;|&nbsp; ');
 
     const priceHtml = specialPrice ? `<span class="special-price">特供价: ¥${specialPrice}</span>` : '';
-    const wrapId = 'wrap-' + index;
+    const wrapId = 'wrap-' + (start + index);
     const safeName = name.replace(/'/g, "\\'");
     const safeSku = sku.replace(/'/g, "\\'");
     const safePrice = (specialPrice || '').toString().replace(/'/g, "\\'");
     
-    // 弹窗用的颜色信息
     const modalColors = items.map(c => `${c['颜色']||'默认'}:${c['库存']||0}`).join(' | ');
 
     return `
@@ -296,11 +339,9 @@ function showBig(imgPath, name, sku, colorInfo, specialPrice) {
   document.getElementById('modalName').textContent = name;
   document.getElementById('modalSku').textContent = `货号: ${sku}  |  ${colorInfo}`;
   
-  // 弹窗不重复显示总库存，颜色明细已在上面
   const ms = document.getElementById('modalStock');
   ms.style.display = 'none';
   
-  // 特供价
   const priceDiv = document.getElementById('modalPrice');
   if (specialPrice) {
     priceDiv.textContent = '特供价: ¥' + specialPrice;
@@ -325,9 +366,29 @@ function renderPagination(totalItems) {
   if (totalPages <= 1) { pag.innerHTML = ''; return; }
 
   let html = `<button class="page-btn" ${currentPage===1?'disabled':''} onclick="goPage(${currentPage-1})">上一页</button>`;
-  for (let i = 1; i <= totalPages; i++) {
+  
+  // 页码过多时只显示部分
+  const maxButtons = 10;
+  let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+  let endPage = Math.min(totalPages, startPage + maxButtons - 1);
+  if (endPage - startPage < maxButtons - 1) {
+    startPage = Math.max(1, endPage - maxButtons + 1);
+  }
+  
+  if (startPage > 1) {
+    html += `<button class="page-btn" onclick="goPage(1)">1</button>`;
+    if (startPage > 2) html += `<span style="margin:0 4px;">...</span>`;
+  }
+  
+  for (let i = startPage; i <= endPage; i++) {
     html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
   }
+  
+  if (endPage < totalPages) {
+    if (endPage < totalPages - 1) html += `<span style="margin:0 4px;">...</span>`;
+    html += `<button class="page-btn" onclick="goPage(${totalPages})">${totalPages}</button>`;
+  }
+  
   html += `<button class="page-btn" ${currentPage===totalPages?'disabled':''} onclick="goPage(${currentPage+1})">下一页</button>`;
   pag.innerHTML = html;
 }
