@@ -3,487 +3,202 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>棉品库存（测试版）</title>
+<title>棉品库存 - 测试版</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: Arial, sans-serif; background: #f5f5f5; padding: 20px; }
+  body { font-family: Arial, sans-serif; background: #f5f5f5; color: #3f3f3f; }
   
-  .header { text-align: center; margin-bottom: 16px; }
-  .header h2 { font-size: 24px; color: #333; }
-  
-  /* ===== 紧凑胶囊标签 ===== */
-  .filter-bar { 
-    display: flex; 
-    flex-wrap: wrap; 
-    gap: 4px; 
-    justify-content: center; 
-    margin-bottom: 12px; 
-    max-width: 1200px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-  .filter-btn { 
-    padding: 5px 14px; 
-    border: 1px solid #2ea660; 
-    background: #fff; 
-    color: #2ea660; 
-    border-radius: 16px; 
-    cursor: pointer; 
-    font-size: 13px; 
-    font-weight: 500;
-    transition: all 0.2s; 
-    white-space: nowrap;
-  }
-  .filter-btn.active { 
-    background: #2ea660; 
-    color: #fff; 
-    font-weight: 700;
-    box-shadow: 0 2px 6px rgba(46,166,96,0.3);
-  }
-  .filter-btn:hover:not(.active) { 
-    background: #e8f8ef; 
-    border-color: #279155;
-  }
-  
-  /* ===== 搜索栏冻结（sticky）+ 手机端一行 ===== */
+  /* 搜索栏吸顶 & 一行显示 */
   .search-sticky {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: rgba(245, 245, 245, 0.95);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    padding: 10px 0 12px;
-    margin-bottom: 4px;
-    border-bottom: 1px solid rgba(0,0,0,0.06);
-    box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(245,245,245,0.95); backdrop-filter: blur(8px);
+    padding: 10px 12px; border-bottom: 1px solid rgba(0,0,0,0.06);
   }
-  .search-bar { 
-    display: flex; 
-    align-items: center; 
-    gap: 6px; 
-    flex-wrap: nowrap;          /* 强制不换行 */
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 0 12px;           /* 左右留安全边距 */
+  .search-bar { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+  .search-input-wrapper { flex: 1; min-width: 0; position: relative; }
+  .search-input-wrapper input {
+    width: 100%; padding: 9px 40px 9px 14px; border: 1px solid #ddd;
+    border-radius: 20px; outline: none; font-size: 14px;
   }
-  .search-bar input { 
-    flex: 1;                   /* 占满剩余空间 */
-    min-width: 0;              /* 允许收缩到比内容更小 */
-    padding: 9px 14px; 
-    font-size: 14px; 
-    border: 1px solid #ddd; 
-    border-radius: 20px; 
-    outline: none; 
-    box-shadow: 0 1px 4px rgba(0,0,0,0.06); 
-    transition: border-color 0.2s, box-shadow 0.2s; 
+  .search-btn {
+    position: absolute; right: 2px; top: 50%; transform: translateY(-50%);
+    width: 32px; height: 32px; border: none; border-radius: 50%;
+    background: #fd705f; color: #fff; cursor: pointer; display: flex;
+    align-items: center; justify-content: center; font-size: 14px;
   }
-  .search-bar input:focus { 
-    border-color: #2ea660; 
-    box-shadow: 0 2px 8px rgba(46,166,96,0.2); 
+  .clear-btn {
+    flex-shrink: 0; padding: 7px 12px; border: 1px solid #ccc;
+    background: #fff; color: #666; border-radius: 20px; cursor: pointer; font-size: 13px;
   }
-  .search-bar .clear-btn { 
-    flex-shrink: 0;            /* 按钮不压缩，保持原尺寸 */
-    padding: 7px 14px; 
-    border: 1px solid #ccc; 
-    background: #fff; 
-    color: #666; 
-    border-radius: 20px; 
-    cursor: pointer; 
-    font-size: 13px; 
-    transition: all 0.2s; 
-    white-space: nowrap;
-  }
-  .search-bar .clear-btn:hover { 
-    background: #ff6b6b; 
-    color: #fff; 
-    border-color: #ff6b6b; 
-  }
-  
-  /* 每页数量选择器 */
-  .page-size-bar { text-align: center; margin-bottom: 16px; font-size: 13px; color: #666; }
-  .page-size-bar select { padding: 4px 8px; border: 1px solid #ddd; border-radius: 6px; font-size: 13px; margin-left: 4px; cursor: pointer; }
-  
-  .search-result-hint { text-align: center; color: #999; font-size: 13px; margin-bottom: 12px; }
-  
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; max-width: 1200px; margin: 0 auto; }
-  .card { background: #fff; border-radius: 10px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); transition: transform 0.2s; }
-  .card:hover { transform: translateY(-4px); }
-  .img-wrap { width: 100%; height: 220px; background: #eee; display: flex; align-items: center; justify-content: center; overflow: hidden; }
-  .img-wrap img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
-  .img-wrap span { color: #999; font-size: 14px; }
-  .card-info { padding: 12px; }
-  .name { font-weight: bold; font-size: 15px; margin-bottom: 6px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .detail { display: flex; justify-content: space-between; align-items: center; font-size: 13px; }
-  .sku { color: #666; }
-  
-  .color-box { margin: 8px 0 4px; font-size: 13px; color: #444; line-height: 1.8; }
-  .color-item { display: inline-block; margin-right: 2px; }
-  .color-item b.ok { color: #2ea660; font-weight: normal; }
-  .color-item b.low { color: #ff6b6b; font-weight: bold; }
-  .color-item.zero { color: #bbb; text-decoration: line-through; }
-  
-  .special-price { display: block; color: #e74c3c; font-weight: bold; font-size: 14px; margin-top: 6px; text-align: right; }
-  
-  .pagination { text-align: center; margin-top: 24px; }
-  .page-btn { padding: 6px 12px; margin: 0 4px; border: 1px solid #ccc; background: #fff; cursor: pointer; border-radius: 4px; }
-  .page-btn.active { background: #2ea660; color: #fff; border-color: #2ea660; }
-  .page-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-  
-  .loading { text-align: center; padding: 40px; color: #999; }
-  
-  .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; }
-  .modal.active { display: flex; }
-  .modal img { max-width: 90%; max-height: 75vh; object-fit: contain; border-radius: 8px; cursor: default; }
-  .modal-info { color: #fff; margin-top: 16px; text-align: center; font-size: 16px; }
-  .modal-info div { margin: 4px 0; }
-  .modal-stock { font-weight: bold; }
-  .close-btn { position: absolute; top: 20px; right: 30px; color: #fff; font-size: 36px; cursor: pointer; opacity: 0.7; }
-  .close-btn:hover { opacity: 1; }
-  
-  .no-result { text-align: center; padding: 60px 20px; color: #999; font-size: 16px; }
-  
-  .stats-bar { text-align: center; color: #999; font-size: 12px; margin-bottom: 12px; }
 
-  /* 手机端额外收紧 */
+  /* 标题区 */
+  .header { text-align: center; margin: 20px 0 12px; }
+  .title-main { font-size: 28px; font-weight: 800; color: #3f3f3f; }
+  .title-sub { font-size: 14px; color: #3f3f3f; margin-top: 4px; }
+
+  /* 季节标签 */
+  .tags-bar { display: flex; justify-content: center; gap: 8px; margin-bottom: 16px; }
+  .season-tag {
+    padding: 5px 14px; border: 1px solid #3f3f3f; border-radius: 16px;
+    font-size: 13px; color: #3f3f3f; background: #fff; cursor: pointer;
+  }
+  .season-tag.active { background: #3f3f3f; color: #fff; }
+
+  /* 列表卡片 */
+  .list-container { padding: 0 12px 24px; max-width: 600px; margin: 0 auto; }
+  .brand-card {
+    display: flex; align-items: center; gap: 12px; background: #ebebeb;
+    padding: 10px; border-radius: 10px; margin-bottom: 10px; cursor: pointer;
+    transition: transform 0.1s;
+  }
+  .brand-card:active { transform: scale(0.98); }
+  .card-img {
+    width: 60px; height: 60px; background: #fd705f; border-radius: 8px;
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center;
+    color: #fff; font-size: 12px; overflow: hidden;
+  }
+  .card-img img { width: 100%; height: 100%; object-fit: cover; }
+  .card-title { font-size: 15px; font-weight: 600; color: #3f3f3f; }
+
   @media (max-width: 480px) {
-    body { padding: 12px 8px; }
-    .header h2 { font-size: 20px; }
-    .search-bar { padding: 0 8px; gap: 4px; }
-    .search-bar input { padding: 8px 12px; font-size: 13px; }
-    .search-bar .clear-btn { padding: 6px 10px; font-size: 12px; }
-    .filter-btn { padding: 4px 10px; font-size: 12px; }
-    .page-size-bar { font-size: 12px; }
-    .page-size-bar select { font-size: 12px; }
+    .title-main { font-size: 24px; }
+    .card-img { width: 52px; height: 52px; }
   }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <h2>📦 棉品库存（测试版）</h2>
-</div>
-
-<div class="filter-bar" id="filterBar"></div>
-
-<!-- 搜索栏（冻结吸顶，手机端一行） -->
 <div class="search-sticky">
   <div class="search-bar">
-    <input type="text" id="searchInput" placeholder="搜索货号或商品名称..." oninput="filterCards()" />
+    <div class="search-input-wrapper">
+      <input type="text" id="searchInput" placeholder="搜索品牌名称..." oninput="filterList()">
+      <button class="search-btn" onclick="filterList()">🔍</button>
+    </div>
     <button class="clear-btn" onclick="clearSearch()">清除</button>
   </div>
-  <div class="search-result-hint" id="searchHint"></div>
 </div>
 
-<!-- 每页数量选择 -->
-<div class="page-size-bar">
-  每页显示：
-  <select id="pageSizeSelect" onchange="changePageSize()">
-    <option value="12">12 个款</option>
-    <option value="24" selected>24 个款</option>
-    <option value="36">36 个款</option>
-    <option value="48">48 个款</option>
-  </select>
-  <span id="statsBar" class="stats-bar"></span>
+<div class="header">
+  <div class="title-main">棉品库存</div>
+  <div class="title-sub">测试版</div>
 </div>
 
-<div class="loading" id="loading">加载中...</div>
-<div class="grid" id="grid"></div>
-<div class="pagination" id="pagination"></div>
-
-<div class="modal" id="modal" onclick="closeModal()">
-  <span class="close-btn" onclick="closeModal()">&times;</span>
-  <img id="modalImg" src="" onclick="event.stopPropagation()">
-  <div class="modal-info">
-    <div id="modalName"></div>
-    <div id="modalSku"></div>
-    <div id="modalStock" class="modal-stock"></div>
-    <div id="modalPrice" class="modal-stock" style="display:none;"></div>
-  </div>
+<div class="tags-bar">
+  <div class="season-tag active" onclick="selectSeason('26秋冬', this)">26秋冬</div>
+  <div class="season-tag" onclick="selectSeason('26春夏', this)">26春夏</div>
+  <div class="season-tag" onclick="selectSeason('25秋冬', this)">25秋冬</div>
 </div>
+
+<div class="list-container" id="listContainer"></div>
 
 <script>
-// ================= 配置区 =================
-const brands = ['茉纸26秋冬', '兰朵儿26秋冬', '洹乐熊26秋冬', '钓鱼猫26秋冬', '贝婴兔26秋冬', '班纳日记26秋冬', '婴装26秋冬', '叮当町26秋冬', '小米班长26秋冬', '青禾小筑26秋冬', '丛林木马26秋冬', '米兰贝贝26秋冬', '椰奶小贝26秋冬', '沐童王子26秋冬', '英贝米尼26秋季', '贝肽斯26秋冬', '贝婴兔福利款'];
-// =================
+  // 品牌列表（img 留空则自动尝试 cover.jpg，找不到再兜底用 data.json 第一张图）
+  const brands = [
+    { name: '班纳日记26秋冬活动系列', season: '26秋冬', img: '' },
+    { name: '茉纸26秋冬活动系列', season: '26秋冬', img: '' },
+    { name: '小米班长26秋冬活动系列', season: '26秋冬', img: '' },
+    { name: '洹乐熊26秋冬活动系列', season: '26秋冬', img: '' },
+    { name: '米兰贝贝26秋冬活动系列', season: '26秋冬', img: '' },
+    { name: '沐童王子26秋冬活动系列', season: '26秋冬', img: '' },
+    { name: '婴装26秋冬活动系列', season: '26秋冬', img: '' },
+    { name: '贝婴兔26秋冬活动系列', season: '26秋冬', img: '' },
+  ];
 
-let PAGE_SIZE = 24;
-let currentBrand = 'all';
-let allDataCache = [];
-let currentRenderData = [];
-let currentPage = 1;
-let searchKeyword = '';
+  let currentSeason = '26秋冬';
+  let currentKeyword = '';
 
-function init() {
-  renderFilterButtons();
-  loadBrand('all');
-}
+  // 品牌封面缓存（避免重复 fetch）
+  const coverCache = {};
 
-function renderFilterButtons() {
-  const bar = document.getElementById('filterBar');
-  let html = `<button class="filter-btn active" onclick="loadBrand('all', this)">全部</button>`;
-  brands.forEach(b => {
-    const safeB = b.replace(/'/g, "\\'");
-    html += `<button class="filter-btn" onclick="loadBrand('${safeB}', this)">${b}</button>`;
-  });
-  bar.innerHTML = html;
-}
+  async function getBrandCover(brand) {
+    if (coverCache[brand]) return coverCache[brand];
 
-function changePageSize() {
-  const select = document.getElementById('pageSizeSelect');
-  PAGE_SIZE = parseInt(select.value);
-  currentPage = 1;
-  renderPage();
-}
+    // 1. 先尝试 cover.jpg
+    const coverPath = `brands/${encodeURIComponent(brand)}/cover.jpg`;
+    try {
+      const res = await fetch(coverPath, { method: 'HEAD' });
+      if (res.ok) {
+        coverCache[brand] = coverPath;
+        return coverPath;
+      }
+    } catch (e) {}
 
-function loadBrand(brand, btn) {
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
-  if (btn) btn.classList.add('active');
-  
-  currentBrand = brand;
-  currentPage = 1;
-  searchKeyword = '';
-  document.getElementById('searchInput').value = '';
-  document.getElementById('searchHint').textContent = '';
-  document.getElementById('loading').style.display = 'block';
-  document.getElementById('grid').innerHTML = '';
+    // 2. 兜底：fetch data.json 拿第一张商品图
+    try {
+      const res = await fetch(`brands/${encodeURIComponent(brand)}/data.json?t=${Date.now()}`);
+      if (res.ok) {
+        const data = await res.json();
+        const firstImg = data[0]?.['图片名'] || '';
+        if (firstImg) {
+          const imgPath = `brands/${encodeURIComponent(brand)}/${firstImg}`;
+          coverCache[brand] = imgPath;
+          return imgPath;
+        }
+      }
+    } catch (e) {}
 
-  if (brand === 'all') {
-    Promise.all(brands.map(b => 
-      fetch(`brands/${encodeURIComponent(b)}/data.json?t=${Date.now()}`)
-        .then(res => {
-          if (!res.ok) throw new Error(`品牌"${b}"加载失败`);
-          return res.json();
-        })
-        .then(data => data.map(row => ({...row, _brand: b})))
-        .catch(err => {
-          console.error(err.message);
-          return [];
-        })
-    )).then(results => {
-      allDataCache = results.flat();
-      currentRenderData = allDataCache;
-      document.getElementById('loading').style.display = 'none';
-      
-      const skuCount = new Set(allDataCache.map(r => r['货号'])).size;
-      document.getElementById('statsBar').textContent = `共 ${allDataCache.length} 行数据，${skuCount} 个款`;
-      
-      renderPage();
-    });
-  } else {
-    fetch(`brands/${encodeURIComponent(brand)}/data.json?t=${Date.now()}`)
-      .then(res => {
-        if (!res.ok) throw new Error('找不到 data.json');
-        return res.json();
-      })
-      .then(data => {
-        allDataCache = data.map(row => ({...row, _brand: brand}));
-        currentRenderData = allDataCache;
-        document.getElementById('loading').style.display = 'none';
-        
-        const skuCount = new Set(allDataCache.map(r => r['货号'])).size;
-        document.getElementById('statsBar').textContent = `共 ${allDataCache.length} 行数据，${skuCount} 个款`;
-        
-        renderPage();
-      })
-      .catch(err => {
-        document.getElementById('loading').textContent = '加载失败：' + err.message;
-      });
+    coverCache[brand] = '';
+    return '';
   }
-}
 
-// ========== 搜索功能 ==========
-function filterCards() {
-  const input = document.getElementById('searchInput');
-  searchKeyword = input.value.trim().toLowerCase();
-  
-  if (!searchKeyword) {
-    currentRenderData = allDataCache;
-    currentPage = 1;
-    document.getElementById('searchHint').textContent = '';
-    renderPage();
-    return;
-  }
-  
-  currentRenderData = allDataCache.filter(row => {
-    const name = (row['商品名称'] || row['name'] || '').toString().toLowerCase();
-    const sku = (row['货号'] || row['sku'] || '').toString().toLowerCase();
-    return name.includes(searchKeyword) || sku.includes(searchKeyword);
-  });
-  
-  currentPage = 1;
-  
-  const hint = document.getElementById('searchHint');
-  if (currentRenderData.length === 0) {
-    hint.textContent = `未找到包含"${input.value}"的商品`;
-  } else {
-    const skuCount = new Set(currentRenderData.map(r => r['货号'])).size;
-    hint.textContent = `找到 ${currentRenderData.length} 行数据，${skuCount} 个款`;
-  }
-  
-  renderPage();
-}
+  async function renderList() {
+    const container = document.getElementById('listContainer');
+    const filtered = brands.filter(b => 
+      b.season === currentSeason && (currentKeyword === '' || b.name.includes(currentKeyword))
+    );
 
-function clearSearch() {
-  searchKeyword = '';
-  document.getElementById('searchInput').value = '';
-  document.getElementById('searchHint').textContent = '';
-  currentRenderData = allDataCache;
-  currentPage = 1;
-  renderPage();
-}
+    if (filtered.length === 0) {
+      container.innerHTML = '<div style="text-align:center;padding:30px;color:#999;">暂无数据</div>';
+      return;
+    }
 
-document.addEventListener('DOMContentLoaded', function() {
-  const searchInput = document.getElementById('searchInput');
-  if (searchInput) {
-    searchInput.addEventListener('keydown', function(e) {
-      if (e.key === 'Enter') {
-        filterCards();
+    // 先渲染骨架（文字部分）
+    container.innerHTML = filtered.map(b => `
+      <div class="brand-card" onclick="goDetail('${b.name}')">
+        <div class="card-img" id="img-${b.name.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_')}">
+          <span style="font-size:12px;color:#fff;">加载中</span>
+        </div>
+        <div class="card-title">${b.name}</div>
+      </div>
+    `).join('');
+
+    // 异步加载封面图
+    filtered.forEach(async (b) => {
+      const cover = await getBrandCover(b.name);
+      const imgDiv = document.getElementById(`img-${b.name.replace(/[^a-zA-Z0-9\u4e00-\u9fa5]/g, '_')}`);
+      if (imgDiv) {
+        if (cover) {
+          imgDiv.innerHTML = `<img src="${cover}" onerror="this.parentElement.innerHTML='📦'">`;
+        } else {
+          imgDiv.innerHTML = '📦';
+        }
       }
     });
   }
-});
 
-// ========== 核心：按货号合并 + 颜色标签渲染 ==========
-function renderPage() {
-  const grid = document.getElementById('grid');
-  
-  const grouped = {};
-  currentRenderData.forEach(row => {
-    const sku = row['货号'] || row['sku'] || '未知货号';
-    if (!grouped[sku]) grouped[sku] = [];
-    grouped[sku].push(row);
-  });
-
-  const skuList = Object.keys(grouped);
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const end = start + PAGE_SIZE;
-  const pageSkus = skuList.slice(start, end);
-
-  if (pageSkus.length === 0) {
-    grid.innerHTML = '<div class="no-result">暂无匹配商品</div>';
-    renderPagination(skuList.length);
-    return;
+  function selectSeason(season, el) {
+    currentSeason = season;
+    document.querySelectorAll('.season-tag').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    renderList();
   }
 
-  grid.innerHTML = pageSkus.map((sku, index) => {
-    const items = grouped[sku];
-    const main = items[0];
-    const name = main['商品名称'] || main['name'] || sku;
-    const imgName = main['图片名'] || main['image'] || '';
-    const brand = main._brand || currentBrand;
-    const imgPath = `brands/${brand}/${imgName}`;
-    const specialPrice = main['特供价'] || main['特价'] || '';
-    
-    const colorDetails = items.map(c => {
-      const cName = c['颜色'] || '默认';
-      const cStock = parseInt(c['库存']) || 0;
-      const stockClass = cStock <= 5 ? 'low' : 'ok';
-      const zeroClass = cStock === 0 ? 'zero' : '';
-      return `<span class="color-item ${zeroClass}">${cName}:<b class="${stockClass}">${cStock}</b></span>`;
-    }).join(' &nbsp;|&nbsp; ');
-
-    const priceHtml = specialPrice ? `<span class="special-price">特供价: ¥${specialPrice}</span>` : '';
-    const wrapId = 'wrap-' + (start + index);
-    const safeName = name.replace(/'/g, "\\'");
-    const safeSku = sku.replace(/'/g, "\\'");
-    const safePrice = (specialPrice || '').toString().replace(/'/g, "\\'");
-    
-    const modalColors = items.map(c => `${c['颜色']||'默认'}:${c['库存']||0}`).join(' | ');
-
-    return `
-      <div class="card">
-        <div class="img-wrap" id="${wrapId}">
-          <img src="${imgPath}" 
-               onclick="showBig('${imgPath.replace(/'/g,"\\'")}','${safeName}','${safeSku}','${modalColors}','${safePrice}')" 
-               onerror="this.onerror=function(){handleImgErr('${wrapId}')};">
-        </div>
-        <div class="card-info">
-          <div class="name">${name}</div>
-          <div class="detail">
-            <span class="sku">${sku}</span>
-          </div>
-          <div class="color-box">${colorDetails}</div>
-          ${priceHtml}
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  renderPagination(skuList.length);
-}
-
-function handleImgErr(id) {
-  const wrap = document.getElementById(id);
-  if (wrap) wrap.innerHTML = '<span>暂无图片</span>';
-}
-
-function showBig(imgPath, name, sku, colorInfo, specialPrice) {
-  const modal = document.getElementById('modal');
-  document.getElementById('modalImg').src = imgPath;
-  document.getElementById('modalName').textContent = name;
-  document.getElementById('modalSku').textContent = `货号: ${sku}  |  ${colorInfo}`;
-  
-  const ms = document.getElementById('modalStock');
-  ms.style.display = 'none';
-  
-  const priceDiv = document.getElementById('modalPrice');
-  if (specialPrice) {
-    priceDiv.textContent = '特供价: ¥' + specialPrice;
-    priceDiv.style.color = '#e74c3c';
-    priceDiv.style.display = 'block';
-  } else {
-    priceDiv.style.display = 'none';
+  function filterList() {
+    currentKeyword = document.getElementById('searchInput').value.trim();
+    renderList();
   }
-  
-  modal.classList.add('active');
-}
 
-function closeModal() {
-  document.getElementById('modal').classList.remove('active');
-}
-
-document.addEventListener('keydown', e => { if(e.key==='Escape') closeModal(); });
-
-function renderPagination(totalItems) {
-  const totalPages = Math.ceil(totalItems / PAGE_SIZE);
-  const pag = document.getElementById('pagination');
-  if (totalPages <= 1) { pag.innerHTML = ''; return; }
-
-  let html = `<button class="page-btn" ${currentPage===1?'disabled':''} onclick="goPage(${currentPage-1})">上一页</button>`;
-  
-  const maxButtons = 10;
-  let startPage = Math.max(1, currentPage - Math.floor(maxButtons / 2));
-  let endPage = Math.min(totalPages, startPage + maxButtons - 1);
-  if (endPage - startPage < maxButtons - 1) {
-    startPage = Math.max(1, endPage - maxButtons + 1);
+  function clearSearch() {
+    document.getElementById('searchInput').value = '';
+    currentKeyword = '';
+    renderList();
   }
-  
-  if (startPage > 1) {
-    html += `<button class="page-btn" onclick="goPage(1)">1</button>`;
-    if (startPage > 2) html += `<span style="margin:0 4px;">...</span>`;
-  }
-  
-  for (let i = startPage; i <= endPage; i++) {
-    html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
-  }
-  
-  if (endPage < totalPages) {
-    if (endPage < totalPages - 1) html += `<span style="margin:0 4px;">...</span>`;
-    html += `<button class="page-btn" onclick="goPage(${totalPages})">${totalPages}</button>`;
-  }
-  
-  html += `<button class="page-btn" ${currentPage===totalPages?'disabled':''} onclick="goPage(${currentPage+1})">下一页</button>`;
-  pag.innerHTML = html;
-}
 
-function goPage(p) {
-  currentPage = p;
-  renderPage();
-  window.scrollTo({ top: 0, behavior: 'smooth' });
-}
+  function goDetail(brand) {
+    window.location.href = `detail.html?brand=${encodeURIComponent(brand)}`;
+  }
 
-init();
+  renderList();
 </script>
 </body>
 </html>

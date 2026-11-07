@@ -1,0 +1,250 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>商品列表</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; background: #f5f5f5; color: #3f3f3f; }
+  
+  /* 顶部导航与搜索吸顶 */
+  .top-bar {
+    position: sticky; top: 0; z-index: 100;
+    background: rgba(245,245,245,0.95); backdrop-filter: blur(8px);
+    padding: 10px 12px; border-bottom: 1px solid rgba(0,0,0,0.06);
+  }
+  
+  /* 返回与搜索强制一行 */
+  .nav-search-row { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
+  .back-btn {
+    flex-shrink: 0; padding: 6px 8px; border: 1px solid #ccc;
+    background: #fff; color: #3f3f3f; border-radius: 16px; cursor: pointer; font-size: 13px;
+  }
+  .search-input-wrapper { flex: 1; min-width: 0; position: relative; }
+  .search-input-wrapper input {
+    width: 100%; padding: 8px 36px 8px 12px; border: 1px solid #ddd;
+    border-radius: 20px; outline: none; font-size: 14px;
+  }
+  .search-btn {
+    position: absolute; right: 2px; top: 50%; transform: translateY(-50%);
+    width: 30px; height: 30px; border: none; border-radius: 50%;
+    background: #fd705f; color: #fff; cursor: pointer; display: flex;
+    align-items: center; justify-content: center; font-size: 13px;
+  }
+  .clear-x {
+    position: absolute; right: 36px; top: 50%; transform: translateY(-50%);
+    width: 20px; height: 20px; line-height: 20px; text-align: center;
+    color: #999; cursor: pointer; font-size: 18px; display: none;
+  }
+  .clear-x.show { display: block; }
+
+  /* 标题区 */
+  .header { text-align: center; margin: 20px 0 16px; }
+  .title-main { font-size: 26px; font-weight: 800; color: #3f3f3f; }
+  .title-sub { font-size: 13px; color: #666; margin-top: 4px; }
+
+  /* 加载/统计 */
+  .loading { text-align: center; padding: 40px; color: #999; }
+  .stats-bar { text-align: center; color: #999; font-size: 12px; margin-bottom: 12px; }
+
+  /* 商品网格 */
+  .list-container { padding: 0 12px 24px; max-width: 600px; margin: 0 auto; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+  .card {
+    background: #fff; border-radius: 10px; overflow: hidden;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
+  }
+  .card-img {
+    width: 100%; height: 120px; background: #ebebeb; display: flex;
+    align-items: center; justify-content: center; color: #999; font-size: 14px; overflow: hidden;
+  }
+  .card-img img { width: 100%; height: 100%; object-fit: cover; }
+  .card-info { padding: 8px; }
+  .name { font-size: 13px; font-weight: 600; color: #3f3f3f; line-height: 1.3; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sku { font-size: 11px; color: #666; margin-bottom: 4px; }
+  .color-box { font-size: 11px; margin-bottom: 4px; line-height: 1.6; }
+  .color-item { display: inline-block; margin-right: 2px; }
+  .color-item b { font-weight: normal; }
+  .color-item b.ok { color: #3f3f3f; }
+  .color-item b.low { color: #fd705f; }
+  .color-item.zero { color: #bbb; text-decoration: line-through; }
+  .special-price { font-size: 12px; color: #fd705f; text-align: right; font-weight: bold; }
+  .no-result { text-align: center; padding: 30px; color: #999; grid-column: 1/-1; }
+
+  @media (max-width: 480px) {
+    .title-main { font-size: 22px; }
+    .grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="nav-search-row">
+    <button class="back-btn" onclick="goBack()">←</button>
+    <div class="search-input-wrapper">
+      <input type="text" id="searchInput" placeholder="搜索货号或商品名称..." oninput="onInputChange()">
+      <span class="clear-x" id="clearX" onclick="clearSearch()">×</span>
+      <button class="search-btn" onclick="filterCards()">🔍</button>
+    </div>
+  </div>
+</div>
+
+<div class="header">
+  <div class="title-main" id="brandTitle">加载中...</div>
+  <div class="title-sub" id="brandSub"></div>
+</div>
+
+<div class="stats-bar" id="statsBar"></div>
+<div class="loading" id="loading">加载中...</div>
+
+<div class="list-container" id="listContainer" style="display:none;">
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+  let allData = [];
+  let renderData = [];
+  let currentBrand = '';
+
+  function getQueryParam(name) {
+    const url = new URL(window.location.href);
+    return decodeURIComponent(url.searchParams.get(name) || '');
+  }
+
+  function parseBrandTitle(fullName) {
+    let brand = fullName;
+    let season = '';
+    const match = fullName.match(/(.*?)(\d{2}(?:秋冬|春夏|秋|春|夏|冬))$/);
+    if (match) {
+      brand = match[1];
+      season = match[2];
+    }
+    const subTitle = season ? `${season}活动系列` : '商品系列';
+    return { brand, subTitle };
+  }
+
+  // 初始化：fetch 真实 data.json
+  async function initDetail() {
+    currentBrand = getQueryParam('brand') || '';
+    const { brand, subTitle } = parseBrandTitle(currentBrand);
+    
+    document.getElementById('brandTitle').innerText = brand;
+    document.getElementById('brandSub').innerText = subTitle;
+
+    if (!currentBrand) {
+      document.getElementById('loading').textContent = '未指定品牌';
+      return;
+    }
+
+    try {
+      const res = await fetch(`brands/${encodeURIComponent(currentBrand)}/data.json?t=${Date.now()}`);
+      if (!res.ok) throw new Error('找不到 data.json');
+      allData = await res.json();
+      
+      // 给每条数据标记品牌名（用于图片路径）
+      allData = allData.map(row => ({ ...row, _brand: currentBrand }));
+      
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('listContainer').style.display = 'block';
+      
+      const skuCount = new Set(allData.map(r => r['货号'] || r['sku'])).size;
+      document.getElementById('statsBar').textContent = `共 ${allData.length} 行数据，${skuCount} 个款`;
+      
+      renderData = allData;
+      renderCards(renderData);
+    } catch (err) {
+      document.getElementById('loading').textContent = '加载失败：' + err.message;
+    }
+  }
+
+  function onInputChange() {
+    const val = document.getElementById('searchInput').value;
+    document.getElementById('clearX').classList.toggle('show', val.length > 0);
+    filterCards();
+  }
+
+  // 按货号合并渲染（同你之前的逻辑）
+  function renderCards(data) {
+    const grid = document.getElementById('grid');
+    
+    if (data.length === 0) {
+      grid.innerHTML = '<div class="no-result">暂无匹配商品</div>';
+      return;
+    }
+
+    // 按货号合并
+    const grouped = {};
+    data.forEach(row => {
+      const sku = row['货号'] || row['sku'] || '未知货号';
+      if (!grouped[sku]) grouped[sku] = [];
+      grouped[sku].push(row);
+    });
+
+    const skuList = Object.keys(grouped);
+
+    grid.innerHTML = skuList.map((sku, index) => {
+      const items = grouped[sku];
+      const main = items[0];
+      const name = main['商品名称'] || main['name'] || sku;
+      const imgName = main['图片名'] || main['image'] || '';
+      const imgPath = `brands/${currentBrand}/${imgName}`;
+      const specialPrice = main['特供价'] || main['特价'] || '';
+      
+      const colorDetails = items.map(c => {
+        const cName = c['颜色'] || '默认';
+        const cStock = parseInt(c['库存']) || 0;
+        const stockClass = cStock <= 5 ? 'low' : 'ok';
+        const zeroClass = cStock === 0 ? 'zero' : '';
+        return `<span class="color-item ${zeroClass}">${cName}:<b class="${stockClass}">${cStock}</b></span>`;
+      }).join(' &nbsp;|&nbsp; ');
+
+      const priceHtml = specialPrice ? `<div class="special-price">特供价: ¥${specialPrice}</div>` : '';
+
+      return `
+        <div class="card">
+          <div class="card-img">
+            <img src="${imgPath}" onerror="this.onerror=null;this.parentElement.innerHTML='暂无图片'">
+          </div>
+          <div class="card-info">
+            <div class="name">${name}</div>
+            <div class="sku">${sku}</div>
+            <div class="color-box">${colorDetails}</div>
+            ${priceHtml}
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function filterCards() {
+    const key = document.getElementById('searchInput').value.trim().toLowerCase();
+    if (!key) {
+      renderData = allData;
+      renderCards(renderData);
+      return;
+    }
+    renderData = allData.filter(row => {
+      const name = (row['商品名称'] || row['name'] || '').toString().toLowerCase();
+      const sku = (row['货号'] || row['sku'] || '').toString().toLowerCase();
+      return name.includes(key) || sku.includes(key);
+    });
+    renderCards(renderData);
+  }
+
+  function clearSearch() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('clearX').classList.remove('show');
+    renderData = allData;
+    renderCards(renderData);
+  }
+
+  function goBack() {
+    window.location.href = 'index.html';
+  }
+
+  initDetail();
+</script>
+</body>
+</html>
