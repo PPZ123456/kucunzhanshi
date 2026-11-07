@@ -1,198 +1,49 @@
-﻿<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>商品列表</title>
-<style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: Arial, sans-serif; background: #f5f5f5; color: #3f3f3f; }
-  
-  .top-bar {
-    position: sticky; top: 0; z-index: 100;
-    background: rgba(245,245,245,0.95); backdrop-filter: blur(8px);
-    padding: 10px 12px; border-bottom: 1px solid rgba(0,0,0,0.06);
-  }
-  .nav-search-row { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
-  .back-btn {
-    flex-shrink: 0; 
-    width: 32px; height: 32px; 
-    border: 1px solid #ccc;
-    background: #fff; color: #3f3f3f; border-radius: 16px; 
-    cursor: pointer; font-size: 13px;
-    display: flex; align-items: center; justify-content: center;
-    padding: 0;
-  }
-  .back-btn svg { width: 18px; height: 18px; fill: #3f3f3f; }
-  .search-input-wrapper { flex: 1; min-width: 0; position: relative; }
-  .search-input-wrapper input {
-    width: 100%; padding: 8px 36px 8px 12px; border: 1px solid #ddd;
-    border-radius: 20px; outline: none; font-size: 14px;
-  }
-  .search-btn {
-    position: absolute; right: 2px; top: 50%; transform: translateY(-50%);
-    width: 30px; height: 30px; border: none; border-radius: 50%;
-    background: #fd705f; color: #fff; cursor: pointer; display: flex;
-    align-items: center; justify-content: center;
-  }
-  .search-btn svg { width: 18px; height: 18px; fill: #ffffff; }
-  .clear-x {
-    position: absolute; right: 36px; top: 50%; transform: translateY(-50%);
-    width: 20px; height: 20px; line-height: 20px; text-align: center;
-    color: #999; cursor: pointer; font-size: 18px; display: none;
-  }
-  .clear-x.show { display: block; }
-
-  .header { text-align: center; margin: 20px 0 16px; }
-  .title-main { font-size: 26px; font-weight: 800; color: #3f3f3f; }
-  .title-sub { font-size: 13px; color: #666; margin-top: 4px; }
-
-  .loading { text-align: center; padding: 40px; color: #999; }
-  .stats-bar { text-align: center; color: #999; font-size: 12px; margin-bottom: 12px; }
-
-  .list-container { padding: 0 12px 24px; max-width: 600px; margin: 0 auto; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
-  .card {
-    background: #fff; border-radius: 10px; overflow: hidden;
-    box-shadow: 0 2px 6px rgba(0,0,0,0.04);
-  }
-  .card-img {
-    width: 100%; height: 120px; background: #ebebeb; display: flex;
-    align-items: center; justify-content: center; color: #999; font-size: 14px; overflow: hidden;
-    cursor: pointer; position: relative;
-  }
-  .card-img img { width: 100%; height: 100%; object-fit: cover; }
-  .card-img::after {
-    content: '🔍'; position: absolute; bottom: 4px; right: 4px;
-    background: rgba(0,0,0,0.4); color: #fff; border-radius: 50%;
-    width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 12px;
-  }
-  .card-info { padding: 8px; }
-  .name { font-size: 13px; font-weight: 600; color: #3f3f3f; line-height: 1.3; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .sku { font-size: 11px; color: #666; margin-bottom: 4px; }
-  .color-box { font-size: 11px; margin-bottom: 4px; line-height: 1.6; }
-  .color-item { display: inline-block; margin-right: 2px; }
-  .color-item b { font-weight: normal; }
-  .color-item b.ok { color: #3f3f3f; }
-  .color-item b.low { color: #fd705f; }
-  .color-item.zero { color: #bbb; text-decoration: line-through; }
-  .special-price { font-size: 12px; color: #fd705f; text-align: right; font-weight: bold; }
-  .no-result { text-align: center; padding: 30px; color: #999; grid-column: 1/-1; }
-
-  .img-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.88); z-index: 9999; display: flex;
-    align-items: center; justify-content: center; opacity: 0; visibility: hidden;
-    transition: opacity 0.25s, visibility 0.25s;
-    flex-direction: column; padding: 20px;
-  }
-  .img-overlay.show { opacity: 1; visibility: visible; }
-  .img-overlay img {
-    max-width: 90%; max-height: 55vh; border-radius: 8px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5); transform: scale(0.95);
-    transition: transform 0.25s; object-fit: contain;
-  }
-  .img-overlay.show img { transform: scale(1); }
-  .img-overlay .close-btn {
-    position: absolute; top: 20px; right: 20px; color: #fff;
-    font-size: 30px; cursor: pointer; background: rgba(0,0,0,0.5);
-    width: 40px; height: 40px; border-radius: 50%; display: flex;
-    align-items: center; justify-content: center; line-height: 1;
-  }
-
-  .overlay-info {
-    margin-top: 12px; color: #fff; text-align: center;
-    font-size: 14px; line-height: 1.5;
-    background: transparent; border: none; padding: 0;
-    max-width: 90vw; display: flex; flex-direction: column; gap: 4px;
-  }
-  .overlay-info .info-line1 { font-size: 16px; color: #fff; }
-  .overlay-info .info-name { font-weight: bold; margin-right: 8px; }
-  .overlay-info .info-sku { font-size: 13px; color: #ddd; }
-  .overlay-info .info-line2 { font-size: 14px; color: #eee; }
-  .overlay-info .info-colors { margin-right: 10px; }
-  .overlay-info .info-colors b { color: #fff !important; font-weight: normal; }
-  .overlay-info .info-price { color: #fd705f; font-weight: bold; }
-
-  @media (max-width: 480px) {
-    .title-main { font-size: 22px; }
-    .grid { grid-template-columns: repeat(2, 1fr); }
-    .img-overlay img { max-height: 45vh; }
-    .overlay-info { font-size: 13px; gap: 2px; }
-    .overlay-info .info-line1 { font-size: 15px; }
-    .overlay-info .info-sku { font-size: 12px; }
-    .overlay-info .info-line2 { font-size: 13px; }
-  }
-</style>
-</head>
-<body>
-
-<div class="top-bar">
-  <div class="nav-search-row">
-    <button class="back-btn" onclick="goBack()" title="返回">
-      <svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
-        <path d="M736.201471 1023.998731a63.428706 63.428706 0 0 1-45.034381-18.394324L242.726141 557.163458a63.428706 63.428706 0 0 1 0-90.068762L691.16709 18.653748a63.428706 63.428706 0 1 1 90.068762 90.068762L377.194997 512.129077l404.040855 404.040855a63.428706 63.428706 0 0 1 0 89.434475 63.428706 63.428706 0 0 1-45.034381 18.394324z"></path>
-      </svg>
-    </button>
-    <div class="search-input-wrapper">
-      <input type="text" id="searchInput" placeholder="搜索货号或商品名称..." oninput="onInputChange()">
-      <span class="clear-x" id="clearX" onclick="clearSearch()">×</span>
-      <button class="search-btn" onclick="filterCards()" title="搜索">
-        <svg t="1794032372694" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5425" width="200" height="200" style="width:18px;height:18px;">
-          <path d="M974.848 975.872c-24.064 24.064-60.416 24.064-84.48 0L702.976 788.48c-163.328 120.832-387.072 114.688-538.112-24.064-169.472-157.184-181.248-435.2-17.92-604.16s435.2-175.104 604.672-6.144c151.04 151.04 163.328 386.56 36.352 549.888l187.392 187.392c24.064 24.064 24.064 59.904-0.512 84.48zM690.688 274.944c-120.832-168.96-368.64-168.96-489.984 0-78.848 102.912-78.848 253.952 0 356.352 120.832 168.96 368.64 168.96 489.984 0 78.848-108.544 78.848-253.952 0-356.352z" fill="#ffffff" p-id="5426"></path>
-        </svg>
-      </button>
-    </div>
-  </div>
-</div>
-
-<div class="header">
-  <div class="title-main" id="brandTitle">加载中...</div>
-  <div class="title-sub" id="brandSub"></div>
-</div>
-
-<div class="stats-bar" id="statsBar"></div>
-<div class="loading" id="loading">加载中...</div>
-
-<div class="list-container" id="listContainer" style="display:none;">
-  <div class="grid" id="grid"></div>
-</div>
-
-<div class="img-overlay" id="imgOverlay">
-  <div class="close-btn" onclick="closeImage()">×</div>
-  <img id="overlayImg" src="" alt="大图">
-  <div class="overlay-info" id="overlayInfo"></div>
-</div>
-
-<script>
-  let allData = [];
-  let renderData = [];
-  let currentBrand = '';
-
-  function getQueryParam(name) {
-    const url = new URL(window.location.href);
-    return decodeURIComponent(url.searchParams.get(name) || '');
-  }
-
-  function parseBrandTitle(fullName) {
-    let brand = fullName;
-    let subTitle = '商品系列';
-    const match = fullName.match(/(.*?)(\d{2}(?:秋冬|春夏|秋|春|夏|冬))(活动系列)?$/);
-    if (match) {
-      brand = match[1];
-      const season = match[2];
-      const act = match[3] || '';
-      subTitle = season + (act || '活动系列');
-    }
-    return { brand, subTitle };
-  }
-
-  // ★ 智能字段读取：自动适配各种字段名
-  function getField(row, candidates) {
-    for (const key of candidates) {
-      if (row[key] !== undefined && row[key] !== null && row[key] !== '') return row[key];
+﻿if (row[key] !== undefined && row[key] !== null && row[key] !== '') return row[key];
     }
     return '';
+  }
+
+  // ★ 按货号聚合（来自单级页面逻辑）
+  function groupBySku(data) {
+    const map = new Map();
+    data.forEach(r => {
+      const sku = getField(r, ['货号','sku','SKU']) || '未知货号';
+      if (!map.has(sku)) {
+        map.set(sku, {
+          sku: sku,
+          name: getField(r, ['商品名称','名称','品名','name','Name']),
+          price: getField(r, ['特价','特供价','活动价','price','Price']),
+          img: getField(r, ['图片名','图片','image','img']),
+          colors: [],
+          _firstRow: r
+        });
+      }
+      const entry = map.get(sku);
+      // 颜色库存
+      const txt = getField(r, ['颜色库存','颜色','库存','colorStock','stock']);
+      if (txt) {
+        txt.split(/[,，;；]/).forEach(c => {
+          const m = c.match(/(.+?)[(（]?(\d+)[)）]?/);
+          if (m) {
+            const cname = m[1], cnum = parseInt(m[2]);
+            entry.colors.push({ name: cname, num: cnum });
+          } else {
+            entry.colors.push({ name: c.trim(), num: -1 });
+          }
+        });
+      }
+    });
+    return Array.from(map.values());
+  }
+
+  function parseColorsTag(colors) {
+    if (!colors || colors.length === 0) return '';
+    return colors.map(c => {
+      let cls = 'ok';
+      if (c.num <= 0) cls = 'zero';
+      else if (c.num < 5) cls = 'low';
+      return `<span class="color-tag ${cls}">${c.name}:${c.num}</span>`;
+    }).join('');
   }
 
   async function initDetail() {
@@ -254,59 +105,39 @@
     renderCards(renderData);
   }
 
+  // ★ 渲染卡片（聚合模式）
   function renderCards(data) {
     const grid = document.getElementById('grid');
-    if (data.length === 0) { grid.innerHTML = '<div class="no-result">无匹配商品</div>'; return; }
-    grid.innerHTML = data.map((r, i) => {
-      const img = getField(r, ['图片名','图片','image','img']);
-      const imgSrc = img ? `brands/${encodeURIComponent(currentBrand)}/${img}` : '';
-      const sku = getField(r, ['货号','sku','SKU']);
-      const name = getField(r, ['商品名称','名称','品名','name','Name']);
-      const price = getField(r, ['特价','特供价','活动价','price','Price']);
-      const colors = parseColors(r);
+    const grouped = groupBySku(data);
+    if (grouped.length === 0) { grid.innerHTML = '<div class="no-result">无匹配商品</div>'; return; }
+    
+    grid.innerHTML = grouped.map((g, i) => {
+      const imgSrc = g.img ? `brands/${encodeURIComponent(currentBrand)}/${g.img}` : '';
+      const colorsHtml = parseColorsTag(g.colors);
       return `
         <div class="card">
-          <div class="card-img" onclick="showImage('${imgSrc}', ${i})">
+          <div class="card-img" onclick="showImage('${imgSrc}', ${i}, ${JSON.stringify(g).replace(/'/g, '&#39;')})">
             ${imgSrc ? `<img src="${imgSrc}" onerror="this.parentElement.innerText='无图'">` : '无图'}
           </div>
           <div class="card-info">
-            <div class="name">${name}</div>
-            <div class="sku">货号: ${sku}</div>
-            <div class="color-box">${colors}</div>
-            <div class="special-price">${price}</div>
+            <div class="name">${g.name}</div>
+            <div class="sku">货号: ${g.sku}</div>
+            <div class="color-box">${colorsHtml}</div>
+            <div class="special-price">${g.price}</div>
           </div>
         </div>
       `;
     }).join('');
   }
 
-  function parseColors(r) {
-    const txt = getField(r, ['颜色库存','颜色','库存','colorStock','stock']);
-    if (!txt) return '';
-    const items = txt.split(/[,，;；]/).map(c => {
-      const m = c.match(/(.+?)[(（]?(\d+)[)）]?/);
-      if (m) {
-        const name = m[1], num = parseInt(m[2]);
-        let cls = 'ok', extra = '';
-        if (num <= 0) { cls = 'zero'; extra = ' text-decoration:line-through;'; }
-        else if (num < 5) { cls = 'low'; }
-        return `<span class="color-item ${cls}" style="${extra}">${name}(<b class="${cls}">${num}</b>)</span>`;
-      }
-      return `<span class="color-item">${c}</span>`;
-    });
-    return items.join(' ');
-  }
-
-  function showImage(img, idx) {
+  function showImage(img, idx, groupData) {
     if (!img) return;
-    const r = renderData[idx];
     document.getElementById('overlayImg').src = img;
-    const name = getField(r, ['商品名称','名称','品名','name','Name']);
-    const sku = getField(r, ['货号','sku','SKU']);
-    const price = getField(r, ['特价','特供价','活动价','price','Price']);
+    // 弹窗信息也用聚合数据
+    const colorsHtml = parseColorsTag(groupData.colors);
     document.getElementById('overlayInfo').innerHTML = `
-      <div class="info-line1"><span class="info-name">${name}</span><span class="info-sku">货号: ${sku}</span></div>
-      <div class="info-line2"><span class="info-colors">${parseColors(r)}</span><span class="info-price">${price}</span></div>
+      <div class="info-line1"><span class="info-name">${groupData.name}</span><span class="info-sku">货号: ${groupData.sku}</span></div>
+      <div class="info-line2"><span class="info-colors">${colorsHtml}</span><span class="info-price">${groupData.price}</span></div>
     `;
     document.getElementById('imgOverlay').classList.add('show');
   }
