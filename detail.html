@@ -94,25 +94,45 @@
     align-items: center; justify-content: center; line-height: 1;
   }
 
-  /* 大图下方信息区 */
+  /* 大图下方信息区 —— 2行无框 */
   .overlay-info {
-    margin-top: 14px; color: #fff; text-align: center;
-    font-size: 14px; line-height: 1.7;
-    background: rgba(255,255,255,0.1);
-    padding: 12px 20px; border-radius: 8px;
-    max-width: 90%; word-break: break-all;
+    margin-top: 12px; color: #fff; text-align: center;
+    font-size: 14px; line-height: 1.5;
+    background: transparent;
+    border: none;
+    padding: 0;
+    max-width: 90vw;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
   }
-  .overlay-info .info-name { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
-  .overlay-info .info-sku { color: #ccc; font-size: 12px; margin-bottom: 4px; }
-  .overlay-info .info-colors { color: #ddd; font-size: 13px; margin-bottom: 4px; }
-  .overlay-info .info-price { color: #fd705f; font-weight: bold; font-size: 15px; }
+  .overlay-info .info-line1 {
+    font-size: 16px; color: #fff;
+  }
+  .overlay-info .info-name {
+    font-weight: bold; margin-right: 8px;
+  }
+  .overlay-info .info-sku {
+    font-size: 13px; color: #ddd;
+  }
+  .overlay-info .info-line2 {
+    font-size: 14px; color: #eee;
+  }
+  .overlay-info .info-colors {
+    margin-right: 10px;
+  }
+  .overlay-info .info-price {
+    color: #fd705f; font-weight: bold;
+  }
 
   @media (max-width: 480px) {
     .title-main { font-size: 22px; }
     .grid { grid-template-columns: repeat(2, 1fr); }
     .img-overlay img { max-height: 45vh; }
-    .overlay-info { padding: 10px 14px; font-size: 13px; }
-    .overlay-info .info-name { font-size: 15px; }
+    .overlay-info { font-size: 13px; gap: 2px; }
+    .overlay-info .info-line1 { font-size: 15px; }
+    .overlay-info .info-sku { font-size: 12px; }
+    .overlay-info .info-line2 { font-size: 13px; }
   }
 </style>
 </head>
@@ -244,7 +264,6 @@
 
       const priceHtml = specialPrice ? `<div class="special-price">特供价: ¥${specialPrice}</div>` : '';
 
-      // 转义单引号防止 JS 报错
       const safeName = name.replace(/'/g, "\\'");
       const safeSku = sku.replace(/'/g, "\\'");
       const safeColors = colorDetails.replace(/'/g, "\\'").replace(/"/g, '&quot;');
@@ -292,7 +311,7 @@
     window.location.href = 'index.html';
   }
 
-  // 图片放大逻辑（带信息展示）
+  // 图片放大逻辑（带信息展示，2行无框）
   function openImage(src, info) {
     if (!src) return;
     const overlay = document.getElementById('imgOverlay');
@@ -303,10 +322,14 @@
     
     if (info) {
       overlayInfo.innerHTML = `
-        <div class="info-name">${info.name}</div>
-        <div class="info-sku">${info.sku}</div>
-        <div class="info-colors">${info.colors}</div>
-        ${info.price ? `<div class="info-price">特供价: ¥${info.price}</div>` : ''}
+        <div class="info-line1">
+          <span class="info-name">${info.name}</span>
+          <span class="info-sku">${info.sku}</span>
+        </div>
+        <div class="info-line2">
+          <span class="info-colors">${info.colors}</span>
+          ${info.price ? `<span class="info-price">特供价: ¥${info.price}</span>` : ''}
+        </div>
       `;
     } else {
       overlayInfo.innerHTML = '';
