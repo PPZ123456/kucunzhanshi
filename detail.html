@@ -15,9 +15,15 @@
   }
   .nav-search-row { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
   .back-btn {
-    flex-shrink: 0; padding: 6px 8px; border: 1px solid #ccc;
-    background: #fff; color: #3f3f3f; border-radius: 16px; cursor: pointer; font-size: 13px;
+    flex-shrink: 0; 
+    width: 32px; height: 32px; 
+    border: 1px solid #ccc;
+    background: #fff; color: #3f3f3f; border-radius: 16px; 
+    cursor: pointer; font-size: 13px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 0;
   }
+  .back-btn svg { width: 18px; height: 18px; fill: #3f3f3f; }
   .search-input-wrapper { flex: 1; min-width: 0; position: relative; }
   .search-input-wrapper input {
     width: 100%; padding: 8px 36px 8px 12px; border: 1px solid #ddd;
@@ -27,8 +33,9 @@
     position: absolute; right: 2px; top: 50%; transform: translateY(-50%);
     width: 30px; height: 30px; border: none; border-radius: 50%;
     background: #fd705f; color: #fff; cursor: pointer; display: flex;
-    align-items: center; justify-content: center; font-size: 13px;
+    align-items: center; justify-content: center;
   }
+  .search-btn svg { width: 18px; height: 18px; fill: #ffffff; }
   .clear-x {
     position: absolute; right: 36px; top: 50%; transform: translateY(-50%);
     width: 20px; height: 20px; line-height: 20px; text-align: center;
@@ -72,7 +79,6 @@
   .special-price { font-size: 12px; color: #fd705f; text-align: right; font-weight: bold; }
   .no-result { text-align: center; padding: 30px; color: #999; grid-column: 1/-1; }
 
-  /* 图片放大遮罩层 */
   .img-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0,0,0,0.88); z-index: 9999; display: flex;
@@ -94,41 +100,19 @@
     align-items: center; justify-content: center; line-height: 1;
   }
 
-  /* 大图下方信息区 —— 2行无框 */
   .overlay-info {
     margin-top: 12px; color: #fff; text-align: center;
     font-size: 14px; line-height: 1.5;
-    background: transparent;
-    border: none;
-    padding: 0;
-    max-width: 90vw;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
+    background: transparent; border: none; padding: 0;
+    max-width: 90vw; display: flex; flex-direction: column; gap: 4px;
   }
-  .overlay-info .info-line1 {
-    font-size: 16px; color: #fff;
-  }
-  .overlay-info .info-name {
-    font-weight: bold; margin-right: 8px;
-  }
-  .overlay-info .info-sku {
-    font-size: 13px; color: #ddd;
-  }
-  .overlay-info .info-line2 {
-    font-size: 14px; color: #eee;
-  }
-  .overlay-info .info-colors {
-    margin-right: 10px;
-  }
-  /* ★ 核心改动：库存数字强制白色 */
-  .overlay-info .info-colors b {
-    color: #fff !important;
-    font-weight: normal;
-  }
-  .overlay-info .info-price {
-    color: #fd705f; font-weight: bold;
-  }
+  .overlay-info .info-line1 { font-size: 16px; color: #fff; }
+  .overlay-info .info-name { font-weight: bold; margin-right: 8px; }
+  .overlay-info .info-sku { font-size: 13px; color: #ddd; }
+  .overlay-info .info-line2 { font-size: 14px; color: #eee; }
+  .overlay-info .info-colors { margin-right: 10px; }
+  .overlay-info .info-colors b { color: #fff !important; font-weight: normal; }
+  .overlay-info .info-price { color: #fd705f; font-weight: bold; }
 
   @media (max-width: 480px) {
     .title-main { font-size: 22px; }
@@ -145,11 +129,20 @@
 
 <div class="top-bar">
   <div class="nav-search-row">
-    <button class="back-btn" onclick="goBack()">←</button>
+    <button class="back-btn" onclick="goBack()" title="返回">
+      <svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
+        <path d="M736.201471 1023.998731a63.428706 63.428706 0 0 1-45.034381-18.394324L242.726141 557.163458a63.428706 63.428706 0 0 1 0-90.068762L691.16709 18.653748a63.428706 63.428706 0 1 1 90.068762 90.068762L377.194997 512.129077l404.040855 404.040855a63.428706 63.428706 0 0 1 0 89.434475 63.428706 63.428706 0 0 1-45.034381 18.394324z"></path>
+      </svg>
+    </button>
     <div class="search-input-wrapper">
       <input type="text" id="searchInput" placeholder="搜索货号或商品名称..." oninput="onInputChange()">
       <span class="clear-x" id="clearX" onclick="clearSearch()">×</span>
-      <button class="search-btn" onclick="filterCards()">🔍</button>
+      <button class="search-btn" onclick="filterCards()" title="搜索">
+        <!-- ★ 新搜索图标，与 index.html 一致 -->
+        <svg t="1794032372694" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5425" width="200" height="200" style="width:18px;height:18px;">
+          <path d="M974.848 975.872c-24.064 24.064-60.416 24.064-84.48 0L702.976 788.48c-163.328 120.832-387.072 114.688-538.112-24.064-169.472-157.184-181.248-435.2-17.92-604.16s435.2-175.104 604.672-6.144c151.04 151.04 163.328 386.56 36.352 549.888l187.392 187.392c24.064 24.064 24.064 59.904-0.512 84.48zM690.688 274.944c-120.832-168.96-368.64-168.96-489.984 0-78.848 102.912-78.848 253.952 0 356.352 120.832 168.96 368.64 168.96 489.984 0 78.848-108.544 78.848-253.952 0-356.352z" fill="#ffffff" p-id="5426"></path>
+        </svg>
+      </button>
     </div>
   </div>
 </div>
@@ -166,7 +159,6 @@
   <div class="grid" id="grid"></div>
 </div>
 
-<!-- 图片放大遮罩层 -->
 <div class="img-overlay" id="imgOverlay">
   <div class="close-btn" onclick="closeImage()">×</div>
   <img id="overlayImg" src="" alt="大图">
@@ -230,79 +222,8 @@
 
   function onInputChange() {
     const val = document.getElementById('searchInput').value;
-    document.getElementById('clearX').classList.toggle('show', val.length > 0);
+    document.getElementById('clearX').classList[val ? 'add' : 'remove']('show');
     filterCards();
-  }
-
-  function renderCards(data) {
-    const grid = document.getElementById('grid');
-    
-    if (data.length === 0) {
-      grid.innerHTML = '<div class="no-result">暂无匹配商品</div>';
-      return;
-    }
-
-    const grouped = {};
-    data.forEach(row => {
-      const sku = row['货号'] || row['sku'] || '未知货号';
-      if (!grouped[sku]) grouped[sku] = [];
-      grouped[sku].push(row);
-    });
-
-    const skuList = Object.keys(grouped);
-
-    grid.innerHTML = skuList.map((sku) => {
-      const items = grouped[sku];
-      const main = items[0];
-      const name = main['商品名称'] || main['name'] || sku;
-      const imgName = main['图片名'] || main['image'] || '';
-      const imgPath = `brands/${currentBrand}/${imgName}`;
-      const specialPrice = main['特供价'] || main['特价'] || '';
-      
-      const colorDetails = items.map(c => {
-        const cName = c['颜色'] || '默认';
-        const cStock = parseInt(c['库存']) || 0;
-        const stockClass = cStock <= 5 ? 'low' : 'ok';
-        const zeroClass = cStock === 0 ? 'zero' : '';
-        return `<span class="color-item ${zeroClass}">${cName}:<b class="${stockClass}">${cStock}</b></span>`;
-      }).join(' &nbsp;|&nbsp; ');
-
-      const priceHtml = specialPrice ? `<div class="special-price">特供价: ¥${specialPrice}</div>` : '';
-
-      const safeName = name.replace(/'/g, "\\'");
-      const safeSku = sku.replace(/'/g, "\\'");
-      const safeColors = colorDetails.replace(/'/g, "\\'").replace(/"/g, '&quot;');
-      const safePrice = specialPrice.replace(/'/g, "\\'");
-
-      return `
-        <div class="card">
-          <div class="card-img" onclick="openImage('${imgPath}', {name:'${safeName}', sku:'${safeSku}', colors:'${safeColors}', price:'${safePrice}'})">
-            <img src="${imgPath}" onerror="this.onerror=null;this.parentElement.innerHTML='暂无图片'">
-          </div>
-          <div class="card-info">
-            <div class="name">${name}</div>
-            <div class="sku">${sku}</div>
-            <div class="color-box">${colorDetails}</div>
-            ${priceHtml}
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
-  function filterCards() {
-    const key = document.getElementById('searchInput').value.trim().toLowerCase();
-    if (!key) {
-      renderData = allData;
-      renderCards(renderData);
-      return;
-    }
-    renderData = allData.filter(row => {
-      const name = (row['商品名称'] || row['name'] || '').toString().toLowerCase();
-      const sku = (row['货号'] || row['sku'] || '').toString().toLowerCase();
-      return name.includes(key) || sku.includes(key);
-    });
-    renderCards(renderData);
   }
 
   function clearSearch() {
@@ -312,54 +233,78 @@
     renderCards(renderData);
   }
 
-  function goBack() {
-    window.location.href = 'index.html';
+  function filterCards() {
+    const kw = document.getElementById('searchInput').value.trim().toLowerCase();
+    if (!kw) { renderData = allData; renderCards(renderData); return; }
+    renderData = allData.filter(r => 
+      (r['货号']||'').toLowerCase().includes(kw) || 
+      (r['商品名称']||'').toLowerCase().includes(kw) ||
+      (r['颜色']||'').toLowerCase().includes(kw)
+    );
+    renderCards(renderData);
   }
 
-  // 图片放大逻辑（带信息展示，2行无框）
-  function openImage(src, info) {
-    if (!src) return;
-    const overlay = document.getElementById('imgOverlay');
-    const overlayImg = document.getElementById('overlayImg');
-    const overlayInfo = document.getElementById('overlayInfo');
-    
-    overlayImg.src = src;
-    
-    if (info) {
-      overlayInfo.innerHTML = `
-        <div class="info-line1">
-          <span class="info-name">${info.name}</span>
-          <span class="info-sku">${info.sku}</span>
-        </div>
-        <div class="info-line2">
-          <span class="info-colors">${info.colors}</span>
-          ${info.price ? `<span class="info-price">特供价: ¥${info.price}</span>` : ''}
+  function renderCards(data) {
+    const grid = document.getElementById('grid');
+    if (data.length === 0) { grid.innerHTML = '<div class="no-result">无匹配商品</div>'; return; }
+    grid.innerHTML = data.map((r, i) => {
+      const img = r['图片名'] ? `brands/${encodeURIComponent(currentBrand)}/${r['图片名']}` : '';
+      const colors = parseColors(r);
+      return `
+        <div class="card">
+          <div class="card-img" onclick="showImage('${img}', ${i})">
+            ${img ? `<img src="${img}" onerror="this.parentElement.innerText='无图'">` : '无图'}
+          </div>
+          <div class="card-info">
+            <div class="name">${r['商品名称']||''}</div>
+            <div class="sku">货号: ${r['货号']||r['sku']||''}</div>
+            <div class="color-box">${colors}</div>
+            <div class="special-price">${r['特价']||''}</div>
+          </div>
         </div>
       `;
-    } else {
-      overlayInfo.innerHTML = '';
-    }
-    
-    overlay.classList.add('show');
-    document.body.style.overflow = 'hidden';
+    }).join('');
+  }
+
+  function parseColors(r) {
+    const txt = r['颜色库存'] || r['颜色'] || '';
+    if (!txt) return '';
+    const items = txt.split(/[,，;；]/).map(c => {
+      const m = c.match(/(.+?)[(（]?(\d+)[)）]?/);
+      if (m) {
+        const name = m[1], num = parseInt(m[2]);
+        let cls = 'ok', extra = '';
+        if (num <= 0) { cls = 'zero'; extra = ' text-decoration:line-through;'; }
+        else if (num < 5) { cls = 'low'; }
+        return `<span class="color-item ${cls}" style="${extra}">${name}(<b class="${cls}">${num}</b>)</span>`;
+      }
+      return `<span class="color-item">${c}</span>`;
+    });
+    return items.join(' ');
+  }
+
+  function showImage(img, idx) {
+    if (!img) return;
+    const r = renderData[idx];
+    document.getElementById('overlayImg').src = img;
+    document.getElementById('overlayInfo').innerHTML = `
+      <div class="info-line1"><span class="info-name">${r['商品名称']||''}</span><span class="info-sku">货号: ${r['货号']||r['sku']||''}</span></div>
+      <div class="info-line2"><span class="info-colors">${parseColors(r)}</span><span class="info-price">${r['特价']||''}</span></div>
+    `;
+    document.getElementById('imgOverlay').classList.add('show');
   }
 
   function closeImage() {
-    const overlay = document.getElementById('imgOverlay');
-    overlay.classList.remove('show');
-    document.body.style.overflow = '';
-    setTimeout(() => { 
-      document.getElementById('overlayImg').src = ''; 
-      document.getElementById('overlayInfo').innerHTML = '';
-    }, 250);
+    document.getElementById('imgOverlay').classList.remove('show');
+  }
+
+  function goBack() {
+    if (document.referrer) window.history.back();
+    else window.location.href = 'index.html';
   }
 
   document.getElementById('imgOverlay').addEventListener('click', function(e) {
     if (e.target === this) closeImage();
-  });
-
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeImage();
   });
 
   initDetail();
