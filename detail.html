@@ -75,15 +75,16 @@
   /* 图片放大遮罩层 */
   .img-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0,0,0,0.85); z-index: 9999; display: flex;
+    background: rgba(0,0,0,0.88); z-index: 9999; display: flex;
     align-items: center; justify-content: center; opacity: 0; visibility: hidden;
     transition: opacity 0.25s, visibility 0.25s;
+    flex-direction: column; padding: 20px;
   }
   .img-overlay.show { opacity: 1; visibility: visible; }
   .img-overlay img {
-    max-width: 90%; max-height: 90%; border-radius: 8px;
+    max-width: 90%; max-height: 55vh; border-radius: 8px;
     box-shadow: 0 4px 20px rgba(0,0,0,0.5); transform: scale(0.95);
-    transition: transform 0.25s;
+    transition: transform 0.25s; object-fit: contain;
   }
   .img-overlay.show img { transform: scale(1); }
   .img-overlay .close-btn {
@@ -93,9 +94,25 @@
     align-items: center; justify-content: center; line-height: 1;
   }
 
+  /* 大图下方信息区 */
+  .overlay-info {
+    margin-top: 14px; color: #fff; text-align: center;
+    font-size: 14px; line-height: 1.7;
+    background: rgba(255,255,255,0.1);
+    padding: 12px 20px; border-radius: 8px;
+    max-width: 90%; word-break: break-all;
+  }
+  .overlay-info .info-name { font-size: 16px; font-weight: bold; margin-bottom: 4px; }
+  .overlay-info .info-sku { color: #ccc; font-size: 12px; margin-bottom: 4px; }
+  .overlay-info .info-colors { color: #ddd; font-size: 13px; margin-bottom: 4px; }
+  .overlay-info .info-price { color: #fd705f; font-weight: bold; font-size: 15px; }
+
   @media (max-width: 480px) {
     .title-main { font-size: 22px; }
     .grid { grid-template-columns: repeat(2, 1fr); }
+    .img-overlay img { max-height: 45vh; }
+    .overlay-info { padding: 10px 14px; font-size: 13px; }
+    .overlay-info .info-name { font-size: 15px; }
   }
 </style>
 </head>
@@ -128,6 +145,7 @@
 <div class="img-overlay" id="imgOverlay">
   <div class="close-btn" onclick="closeImage()">×</div>
   <img id="overlayImg" src="" alt="大图">
+  <div class="overlay-info" id="overlayInfo"></div>
 </div>
 
 <script>
@@ -140,7 +158,6 @@
     return decodeURIComponent(url.searchParams.get(name) || '');
   }
 
-  // 优化后的标题解析：支持"26秋冬活动系列"
   function parseBrandTitle(fullName) {
     let brand = fullName;
     let subTitle = '商品系列';
@@ -227,9 +244,15 @@
 
       const priceHtml = specialPrice ? `<div class="special-price">特供价: ¥${specialPrice}</div>` : '';
 
+      // 转义单引号防止 JS 报错
+      const safeName = name.replace(/'/g, "\\'");
+      const safeSku = sku.replace(/'/g, "\\'");
+      const safeColors = colorDetails.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+      const safePrice = specialPrice.replace(/'/g, "\\'");
+
       return `
         <div class="card">
-          <div class="card-img" onclick="openImage('${imgPath}')">
+          <div class="card-img" onclick="openImage('${imgPath}', {name:'${safeName}', sku:'${safeSku}', colors:'${safeColors}', price:'${safePrice}'})">
             <img src="${imgPath}" onerror="this.onerror=null;this.parentElement.innerHTML='暂无图片'">
           </div>
           <div class="card-info">
@@ -269,12 +292,26 @@
     window.location.href = 'index.html';
   }
 
-  // 图片放大逻辑
-  function openImage(src) {
+  // 图片放大逻辑（带信息展示）
+  function openImage(src, info) {
     if (!src) return;
     const overlay = document.getElementById('imgOverlay');
     const overlayImg = document.getElementById('overlayImg');
+    const overlayInfo = document.getElementById('overlayInfo');
+    
     overlayImg.src = src;
+    
+    if (info) {
+      overlayInfo.innerHTML = `
+        <div class="info-name">${info.name}</div>
+        <div class="info-sku">${info.sku}</div>
+        <div class="info-colors">${info.colors}</div>
+        ${info.price ? `<div class="info-price">特供价: ¥${info.price}</div>` : ''}
+      `;
+    } else {
+      overlayInfo.innerHTML = '';
+    }
+    
     overlay.classList.add('show');
     document.body.style.overflow = 'hidden';
   }
@@ -283,7 +320,10 @@
     const overlay = document.getElementById('imgOverlay');
     overlay.classList.remove('show');
     document.body.style.overflow = '';
-    setTimeout(() => { document.getElementById('overlayImg').src = ''; }, 250);
+    setTimeout(() => { 
+      document.getElementById('overlayImg').src = ''; 
+      document.getElementById('overlayInfo').innerHTML = '';
+    }, 250);
   }
 
   document.getElementById('imgOverlay').addEventListener('click', function(e) {
