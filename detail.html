@@ -58,7 +58,26 @@
   .card-img {
     width: 100%; height: 120px; background: #ebebeb; display: flex;
     align-items: center; justify-content: center; color: #999; font-size: 14px; overflow: hidden;
+    cursor: pointer; /* 提示可点击 */
+    position: relative;
   }
+  .card-img::after {
+    content: '🔍';
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    font-size: 14px;
+    opacity: 0;
+    transition: opacity 0.2s;
+    background: rgba(255,255,255,0.8);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card-img:hover::after { opacity: 1; }
   .card-img img { width: 100%; height: 100%; object-fit: cover; }
   .card-info { padding: 8px; }
   .name { font-size: 13px; font-weight: 600; color: #3f3f3f; line-height: 1.3; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -72,9 +91,34 @@
   .special-price { font-size: 12px; color: #fd705f; text-align: right; font-weight: bold; }
   .no-result { text-align: center; padding: 30px; color: #999; grid-column: 1/-1; }
 
+  /* ===== 图片放大遮罩层 ===== */
+  .img-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85); z-index: 9999;
+    display: none; align-items: center; justify-content: center;
+    flex-direction: column;
+    opacity: 0; transition: opacity 0.25s ease;
+  }
+  .img-overlay.show { display: flex; opacity: 1; }
+  .img-overlay img {
+    max-width: 90vw; max-height: 80vh; object-fit: contain;
+    border-radius: 8px; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    user-select: none; -webkit-user-drag: none;
+  }
+  .img-overlay .overlay-hint {
+    color: rgba(255,255,255,0.6); font-size: 12px; margin-top: 12px;
+  }
+  .img-overlay .overlay-close {
+    position: absolute; top: 16px; right: 16px;
+    width: 36px; height: 36px; line-height: 36px; text-align: center;
+    color: #fff; font-size: 24px; cursor: pointer;
+    background: rgba(255,255,255,0.15); border-radius: 50%;
+  }
+
   @media (max-width: 480px) {
     .title-main { font-size: 22px; }
     .grid { grid-template-columns: repeat(2, 1fr); }
+    .img-overlay img { max-width: 95vw; max-height: 75vh; }
   }
 </style>
 </head>
@@ -101,6 +145,13 @@
 
 <div class="list-container" id="listContainer" style="display:none;">
   <div class="grid" id="grid"></div>
+</div>
+
+<!-- 图片放大遮罩 -->
+<div class="img-overlay" id="imgOverlay">
+  <div class="overlay-close" onclick="closeImage()">×</div>
+  <img id="overlayImg" src="" alt="大图">
+  <div class="overlay-hint">点击任意位置关闭</div>
 </div>
 
 <script>
@@ -143,7 +194,6 @@
       if (!res.ok) throw new Error('找不到 data.json');
       allData = await res.json();
       
-      // 给每条数据标记品牌名（用于图片路径）
       allData = allData.map(row => ({ ...row, _brand: currentBrand }));
       
       document.getElementById('loading').style.display = 'none';
@@ -165,7 +215,7 @@
     filterCards();
   }
 
-  // 按货号合并渲染（同你之前的逻辑）
+  // 按货号合并渲染
   function renderCards(data) {
     const grid = document.getElementById('grid');
     
@@ -174,7 +224,6 @@
       return;
     }
 
-    // 按货号合并
     const grouped = {};
     data.forEach(row => {
       const sku = row['货号'] || row['sku'] || '未知货号';
@@ -204,7 +253,7 @@
 
       return `
         <div class="card">
-          <div class="card-img">
+          <div class="card-img" onclick="openImage('${imgPath}')">
             <img src="${imgPath}" onerror="this.onerror=null;this.parentElement.innerHTML='暂无图片'">
           </div>
           <div class="card-info">
@@ -243,6 +292,33 @@
   function goBack() {
     window.location.href = 'index.html';
   }
+
+  // ===== 图片放大功能 =====
+  function openImage(src) {
+    if (!src) return;
+    const overlay = document.getElementById('imgOverlay');
+    const overlayImg = document.getElementById('overlayImg');
+    overlayImg.src = src;
+    overlay.classList.add('show');
+    document.body.style.overflow = 'hidden'; // 禁止背景滚动
+  }
+
+  function closeImage() {
+    const overlay = document.getElementById('imgOverlay');
+    overlay.classList.remove('show');
+    document.body.style.overflow = '';
+    setTimeout(() => { document.getElementById('overlayImg').src = ''; }, 250);
+  }
+
+  // 点击遮罩层关闭
+  document.getElementById('imgOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeImage();
+  });
+
+  // ESC 键关闭
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closeImage();
+  });
 
   initDetail();
 </script>
