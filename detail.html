@@ -15,13 +15,9 @@
   }
   .nav-search-row { display: flex; align-items: center; gap: 6px; flex-wrap: nowrap; }
   .back-btn {
-    flex-shrink: 0; 
-    width: 32px; height: 32px; 
-    border: 1px solid #ccc;
-    background: #fff; color: #3f3f3f; border-radius: 16px; 
-    cursor: pointer; font-size: 13px;
-    display: flex; align-items: center; justify-content: center;
-    padding: 0;
+    flex-shrink: 0; width: 32px; height: 32px; border: 1px solid #ccc;
+    background: #fff; color: #3f3f3f; border-radius: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; padding: 0;
   }
   .back-btn svg { width: 18px; height: 18px; fill: #3f3f3f; }
   .search-input-wrapper { flex: 1; min-width: 0; position: relative; }
@@ -58,13 +54,12 @@
   }
   .card-img {
     width: 100%; height: 120px; background: #ebebeb; display: flex;
-    align-items: center; justify-content: center; color: #999; font-size: 14px; overflow: hidden;
-    cursor: pointer; position: relative;
+    align-items: center; justify-content: center; color: #999; font-size: 14px;
+    overflow: hidden; cursor: pointer; position: relative;
   }
   .card-img img { width: 100%; height: 100%; object-fit: cover; }
-  /* 隐藏放大镜图标，保留点击放大 */
   .card-img::after { display: none !important; }
-  
+
   .card-info { padding: 8px; }
   .name { font-size: 13px; font-weight: 600; color: #3f3f3f; line-height: 1.3; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sku { font-size: 11px; color: #666; margin-bottom: 4px; }
@@ -99,9 +94,8 @@
   }
 
   .overlay-info {
-    margin-top: 12px; color: #fff; text-align: center;
-    font-size: 14px; line-height: 1.5;
-    background: transparent; border: none; padding: 0;
+    margin-top: 12px; color: #fff; text-align: center; font-size: 14px;
+    line-height: 1.5; background: transparent; border: none; padding: 0;
     max-width: 90vw; display: flex; flex-direction: column; gap: 4px;
   }
   .overlay-info .info-line1 { font-size: 16px; color: #fff; }
@@ -128,17 +122,13 @@
 <div class="top-bar">
   <div class="nav-search-row">
     <button class="back-btn" onclick="goBack()" title="返回">
-      <svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg">
-        <path d="M736.201471 1023.998731a63.428706 63.428706 0 0 1-45.034381-18.394324L242.726141 557.163458a63.428706 63.428706 0 0 1 0-90.068762L691.16709 18.653748a63.428706 63.428706 0 1 1 90.068762 90.068762L377.194997 512.129077l404.040855 404.040855a63.428706 63.428706 0 0 1 0 89.434475 63.428706 63.428706 0 0 1-45.034381 18.394324z"></path>
-      </svg>
+      <svg viewBox="0 0 1024 1024"><path d="M736.201471 1023.998731a63.428706 63.428706 0 0 1-45.034381-18.394324L242.726141 557.163458a63.428706 63.428706 0 0 1 0-90.068762L691.16709 18.653748a63.428706 63.428706 0 1 1 90.068762 90.068762L377.194997 512.129077l404.040855 404.040855a63.428706 63.428706 0 0 1 0 89.434475 63.428706 63.428706 0 0 1-45.034381 18.394324z"></path></svg>
     </button>
     <div class="search-input-wrapper">
       <input type="text" id="searchInput" placeholder="搜索货号或商品名称..." oninput="onInputChange()">
       <span class="clear-x" id="clearX" onclick="clearSearch()">×</span>
       <button class="search-btn" onclick="filterCards()" title="搜索">
-        <svg t="1794032372694" class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" p-id="5425" width="200" height="200" style="width:18px;height:18px;">
-          <path d="M974.848 975.872c-24.064 24.064-60.416 24.064-84.48 0L702.976 788.48c-163.328 120.832-387.072 114.688-538.112-24.064-169.472-157.184-181.248-435.2-17.92-604.16s435.2-175.104 604.672-6.144c151.04 151.04 163.328 386.56 36.352 549.888l187.392 187.392c24.064 24.064 24.064 59.904-0.512 84.48zM690.688 274.944c-120.832-168.96-368.64-168.96-489.984 0-78.848 102.912-78.848 253.952 0 356.352 120.832 168.96 368.64 168.96 489.984 0 78.848-108.544 78.848-253.952 0-356.352z" fill="#ffffff" p-id="5426"></path>
-        </svg>
+        <svg viewBox="0 0 1024 1024"><path d="M974.848 975.872c-24.064 24.064-60.416 24.064-84.48 0L702.976 788.48c-163.328 120.832-387.072 114.688-538.112-24.064-169.472-157.184-181.248-435.2-17.92-604.16s435.2-175.104 604.672-6.144c151.04 151.04 163.328 386.56 36.352 549.888l187.392 187.392c24.064 24.064 24.064 59.904-0.512 84.48zM690.688 274.944c-120.832-168.96-368.64-168.96-489.984 0-78.848 102.912-78.848 253.952 0 356.352 120.832 168.96 368.64 168.96 489.984 0 78.848-108.544 78.848-253.952 0-356.352z" fill="#ffffff"></path></svg>
       </button>
     </div>
   </div>
@@ -173,53 +163,61 @@
   }
 
   function parseBrandTitle(fullName) {
-    let brand = fullName;
-    let subTitle = '商品系列';
+    let brand = fullName, subTitle = '商品系列';
     const match = fullName.match(/(.*?)(\d{2}(?:秋冬|春夏|秋|春|夏|冬))(活动系列)?$/);
     if (match) {
       brand = match[1];
-      const season = match[2];
-      const act = match[3] || '';
-      subTitle = season + act;
+      const season = match[2], act = match[3] || '';
+      subTitle = season + (act || '活动系列');
     }
     return { brand, subTitle };
   }
 
   async function initDetail() {
-    currentBrand = getQueryParam('brand') || '班纳日记';
+    currentBrand = getQueryParam('brand') || '';
     const { brand, subTitle } = parseBrandTitle(currentBrand);
     document.getElementById('brandTitle').innerText = brand;
     document.getElementById('brandSub').innerText = subTitle;
 
+    if (!currentBrand) {
+      document.getElementById('loading').textContent = '未指定品牌';
+      return;
+    }
+
     try {
-      const res = await fetch('data.json');
+      // ★ 路径改回 brands/品牌名/data.json
+      const res = await fetch(`brands/${encodeURIComponent(currentBrand)}/data.json?t=${Date.now()}`);
+      if (!res.ok) throw new Error('找不到 data.json');
       const rawData = await res.json();
-      
-      // 按货号聚合数据
+
+      // ★ 按货号聚合（适配拆行存储的 data.json）
       const map = {};
       rawData.forEach(r => {
-        const sku = r['货号'];
+        const sku = r['货号'] || r['sku'] || '未知';
         if (!map[sku]) {
           map[sku] = {
             '货号': sku,
-            '商品名称': r['商品名称'],
-            '图片名': r['图片名'],
-            '特供价': r['特供价'],
+            '商品名称': r['商品名称'] || r['名称'] || '',
+            '图片名': r['图片名'] || r['图片'] || '',
+            '特供价': r['特供价'] || r['特价'] || r['活动价'] || '',
             '颜色明细': []
           };
         }
-        map[sku]['颜色明细'].push({ 颜色: r['颜色'], 库存: parseInt(r['库存']) });
+        map[sku]['颜色明细'].push({
+          颜色: r['颜色'] || '',
+          库存: parseInt(r['库存']) || 0
+        });
       });
-      
+
       allData = Object.values(map);
       renderData = allData;
-      
+
       document.getElementById('loading').style.display = 'none';
       document.getElementById('listContainer').style.display = 'block';
-      document.getElementById('statsBar').innerText = `共 ${rawData.length} 行数据，${allData.length} 个款`;
+      document.getElementById('statsBar').textContent = `共 ${rawData.length} 行数据，${allData.length} 个款`;
       renderCards(renderData);
-    } catch (e) {
-      document.getElementById('loading').innerText = '加载失败';
+    } catch (err) {
+      document.getElementById('loading').textContent = '加载失败：' + err.message;
     }
   }
 
@@ -239,8 +237,8 @@
   function filterCards() {
     const kw = document.getElementById('searchInput').value.trim().toLowerCase();
     if (!kw) { renderData = allData; renderCards(renderData); return; }
-    renderData = allData.filter(r => 
-      (r['货号']||'').toLowerCase().includes(kw) || 
+    renderData = allData.filter(r =>
+      (r['货号']||'').toLowerCase().includes(kw) ||
       (r['商品名称']||'').toLowerCase().includes(kw) ||
       r['颜色明细'].some(c => (c.颜色||'').toLowerCase().includes(kw))
     );
@@ -248,20 +246,16 @@
   }
 
   function parseColors(r) {
-    // 适配聚合后的 颜色明细 数组
     const details = r['颜色明细'];
     if (!details || !details.length) return '';
-    
     const items = details.map(d => {
       const name = d.颜色;
       const num = d.库存;
       let cls = 'ok';
       if (num <= 0) cls = 'zero';
       else if (num < 5) cls = 'low';
-      // 样式：颜色:库存，带低库存/无库存样式
       return `<span class="color-item ${cls}">${name}：<b class="${cls}">${num}</b></span>`;
     });
-    // 用 " | " 拼接
     return items.join(' | ');
   }
 
