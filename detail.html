@@ -1,9 +1,80 @@
-﻿if (row[key] !== undefined && row[key] !== null && row[key] !== '') return row[key];
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>棉品库存 - 详情</title>
+<style>
+  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial; background: #f5f5f5; color: #333; }
+  .header { padding: 12px 15px; background: #fff; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #eee; }
+  .top-bar { display: flex; align-items: center; margin-bottom: 10px; }
+  .back-btn { cursor: pointer; color: #333; font-size: 16px; margin-right: 15px; }
+  .brand-title { font-size: 18px; font-weight: bold; flex: 1; }
+  .brand-sub { font-size: 12px; color: #999; margin-top: 2px; }
+  .search-box { position: relative; }
+  .search-input { width: 100%; padding: 8px 35px 8px 12px; border: 1px solid #ddd; border-radius: 20px; box-sizing: border-box; font-size: 14px; }
+  .clear-x { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); color: #999; cursor: pointer; display: none; }
+  .clear-x.show { display: block; }
+  .stats-bar { padding: 8px 15px; background: #fff; margin-top: 1px; font-size: 13px; color: #666; }
+  .loading { text-align: center; padding: 40px; color: #999; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; padding: 10px; }
+  .card { background: #fff; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+  .card-img { height: 160px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; }
+  .card-img img { width: 100%; height: 100%; object-fit: cover; }
+  .card-info { padding: 8px; }
+  .name { font-size: 14px; font-weight: 500; margin-bottom: 4px; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .sku { font-size: 12px; color: #888; margin-bottom: 6px; }
+  .color-box { margin-bottom: 6px; font-size: 12px; line-height: 1.6; }
+  .color-tag { display: inline-block; margin-right: 5px; margin-bottom: 3px; padding: 1px 5px; border-radius: 3px; background: #f0f0f0; color: #333; }
+  .color-tag.ok { color: #333; }
+  .color-tag.low { color: #ff6600; }
+  .color-tag.zero { color: #999; text-decoration: line-through; }
+  .special-price { font-size: 16px; color: #ff4444; font-weight: bold; }
+  .no-result { text-align: center; padding: 30px; color: #999; grid-column: 1/-1; }
+  .img-overlay { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); z-index: 200; align-items: center; justify-content: center; flex-direction: column; }
+  .img-overlay.show { display: flex; }
+  .overlay-img { max-width: 90%; max-height: 70%; object-fit: contain; }
+  .overlay-info { background: #fff; width: 90%; max-width: 400px; padding: 15px; margin-top: 15px; border-radius: 8px; box-sizing: border-box; }
+  .info-line1 { display: flex; justify-content: space-between; margin-bottom: 8px; }
+  .info-name { font-weight: bold; font-size: 15px; }
+  .info-sku { color: #888; font-size: 13px; }
+  .info-line2 { display: flex; justify-content: space-between; align-items: flex-end; }
+  .info-colors { font-size: 13px; color: #555; flex: 1; }
+  .info-price { color: #ff4444; font-weight: bold; font-size: 18px; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="top-bar">
+      <span class="back-btn" onclick="goBack()">← 返回</span>
+      <div>
+        <div class="brand-title" id="brandTitle"></div>
+        <div class="brand-sub" id="brandSub"></div>
+      </div>
+    </div>
+    <div class="search-box">
+      <input type="text" class="search-input" id="searchInput" placeholder="搜索货号/名称/颜色" oninput="onInputChange()">
+      <span class="clear-x" id="clearX" onclick="clearSearch()">✕</span>
+    </div>
+  </div>
+  <div class="stats-bar" id="statsBar"></div>
+  <div class="loading" id="loading">加载中...</div>
+  <div class="grid" id="grid"></div>
+  
+  <div class="img-overlay" id="imgOverlay">
+    <img class="overlay-img" id="overlayImg" src="">
+    <div class="overlay-info" id="overlayInfo"></div>
+  </div>
+
+<script>
+  function getField(row, keys) {
+    for (const k of keys) {
+      if (row[k] !== undefined && row[k] !== null && row[k] !== '') return row[k];
     }
     return '';
   }
 
-  // ★ 按货号聚合（来自单级页面逻辑）
+  // ★ 按货号聚合（同款多色合并）
   function groupBySku(data) {
     const map = new Map();
     data.forEach(r => {
@@ -15,20 +86,22 @@
           price: getField(r, ['特价','特供价','活动价','price','Price']),
           img: getField(r, ['图片名','图片','image','img']),
           colors: [],
-          _firstRow: r
+          firstRow: r
         });
       }
       const entry = map.get(sku);
-      // 颜色库存
       const txt = getField(r, ['颜色库存','颜色','库存','colorStock','stock']);
       if (txt) {
         txt.split(/[,，;；]/).forEach(c => {
           const m = c.match(/(.+?)[(（]?(\d+)[)）]?/);
           if (m) {
-            const cname = m[1], cnum = parseInt(m[2]);
-            entry.colors.push({ name: cname, num: cnum });
-          } else {
-            entry.colors.push({ name: c.trim(), num: -1 });
+            const cname = m[1].trim(), cnum = parseInt(m[2]);
+            let cls = 'ok', extra = '';
+            if (cnum <= 0) { cls = 'zero'; extra = 'text-decoration:line-through;'; }
+            else if (cnum < 5) { cls = 'low'; }
+            entry.colors.push({ name: cname, num: cnum, cls: cls });
+          } else if (c.trim()) {
+            entry.colors.push({ name: c.trim(), num: -1, cls: 'ok' });
           }
         });
       }
@@ -38,41 +111,29 @@
 
   function parseColorsTag(colors) {
     if (!colors || colors.length === 0) return '';
-    return colors.map(c => {
-      let cls = 'ok';
-      if (c.num <= 0) cls = 'zero';
-      else if (c.num < 5) cls = 'low';
-      return `<span class="color-tag ${cls}">${c.name}:${c.num}</span>`;
-    }).join('');
+    return colors.map(c => 
+      `<span class="color-tag ${c.cls}">${c.name}:${c.num >= 0 ? c.num : '?'}</span>`
+    ).join('');
   }
 
   async function initDetail() {
-    currentBrand = getQueryParam('brand') || '';
-    const { brand, subTitle } = parseBrandTitle(currentBrand);
+    const currentBrand = new URLSearchParams(location.search).get('brand') || '';
+    if (!currentBrand) { document.getElementById('loading').textContent = '未指定品牌'; return; }
+    document.getElementById('brandTitle').textContent = currentBrand;
+    document.getElementById('brandSub').textContent = '';
     
-    document.getElementById('brandTitle').innerText = brand;
-    document.getElementById('brandSub').innerText = subTitle;
-
-    if (!currentBrand) {
-      document.getElementById('loading').textContent = '未指定品牌';
-      return;
-    }
-
     try {
       const res = await fetch(`brands/${encodeURIComponent(currentBrand)}/data.json?t=${Date.now()}`);
       if (!res.ok) throw new Error('找不到 data.json');
-      allData = await res.json();
-      
+      let allData = await res.json();
       allData = allData.map(row => ({ ...row, _brand: currentBrand }));
       
       document.getElementById('loading').style.display = 'none';
-      document.getElementById('listContainer').style.display = 'block';
+      document.getElementById('statsBar').textContent = `共 ${allData.length} 行数据，${new Set(allData.map(r => getField(r, ['货号','sku','SKU']))).size} 个款`;
       
-      const skuCount = new Set(allData.map(r => getField(r, ['货号','sku','SKU']))).size;
-      document.getElementById('statsBar').textContent = `共 ${allData.length} 行数据，${skuCount} 个款`;
-      
-      renderData = allData;
-      renderCards(renderData);
+      window.allData = allData;
+      window.renderData = allData;
+      renderCards(allData);
     } catch (err) {
       document.getElementById('loading').textContent = '加载失败：' + err.message;
     }
@@ -87,20 +148,17 @@
   function clearSearch() {
     document.getElementById('searchInput').value = '';
     document.getElementById('clearX').classList.remove('show');
-    renderData = allData;
-    renderCards(renderData);
+    filterCards();
   }
 
   function filterCards() {
     const kw = document.getElementById('searchInput').value.trim().toLowerCase();
     if (!kw) { renderData = allData; renderCards(renderData); return; }
     renderData = allData.filter(r => {
-      const name = getField(r, ['商品名称','名称','品名','name','Name']);
-      const sku = getField(r, ['货号','sku','SKU']);
-      const color = getField(r, ['颜色','颜色库存','库存','color']);
-      return (sku||'').toLowerCase().includes(kw) || 
-             (name||'').toLowerCase().includes(kw) ||
-             (color||'').toLowerCase().includes(kw);
+      const name = getField(r, ['商品名称','名称','品名','name','Name']).toLowerCase();
+      const sku = getField(r, ['货号','sku','SKU']).toLowerCase();
+      const color = getField(r, ['颜色','颜色库存','库存','color']).toLowerCase();
+      return sku.includes(kw) || name.includes(kw) || color.includes(kw);
     });
     renderCards(renderData);
   }
@@ -116,8 +174,8 @@
       const colorsHtml = parseColorsTag(g.colors);
       return `
         <div class="card">
-          <div class="card-img" onclick="showImage('${imgSrc}', ${i}, ${JSON.stringify(g).replace(/'/g, '&#39;')})">
-            ${imgSrc ? `<img src="${imgSrc}" onerror="this.parentElement.innerText='无图'">` : '无图'}
+          <div class="card-img" onclick="showImage('${imgSrc}', ${i})">
+            ${imgSrc ? `<img src="${imgSrc}" onerror="this.innerText='无图'">` : '无图'}
           </div>
           <div class="card-info">
             <div class="name">${g.name}</div>
@@ -128,16 +186,25 @@
         </div>
       `;
     }).join('');
+    
+    // 存储聚合数据供弹窗使用
+    window.groupedData = grouped;
   }
 
-  function showImage(img, idx, groupData) {
+  function showImage(img, idx) {
     if (!img) return;
+    const g = window.groupedData[idx];
     document.getElementById('overlayImg').src = img;
-    // 弹窗信息也用聚合数据
-    const colorsHtml = parseColorsTag(groupData.colors);
+    const colorsHtml = parseColorsTag(g.colors);
     document.getElementById('overlayInfo').innerHTML = `
-      <div class="info-line1"><span class="info-name">${groupData.name}</span><span class="info-sku">货号: ${groupData.sku}</span></div>
-      <div class="info-line2"><span class="info-colors">${colorsHtml}</span><span class="info-price">${groupData.price}</span></div>
+      <div class="info-line1">
+        <span class="info-name">${g.name}</span>
+        <span class="info-sku">货号: ${g.sku}</span>
+      </div>
+      <div class="info-line2">
+        <span class="info-colors">${colorsHtml}</span>
+        <span class="info-price">${g.price}</span>
+      </div>
     `;
     document.getElementById('imgOverlay').classList.add('show');
   }
